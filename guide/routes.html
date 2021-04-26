@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Working with routes – Ema</title><meta name="description" content="Ema static site generator (Jamstack) in Haskell"><link href="/ema.svg" rel="icon" /><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#d53f8c"><link href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/prismjs@1.23.0/prism.min.js,npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/combine/npm/twind/twind.umd.min.js,npm/twind/observe/observe.umd.min.js"></script><script type="text/javascript">twind.setup({})
+twindObserve.observe(document.documentElement)</script></head><body><div class="flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl"><div><b>WIP: </b>Documentation is still being written</div></div><div class="container mx-auto xl:max-w-screen-lg"><div class="px-2"><div class="w-full text-gray-600 mt-4"><div class="flex justify-center"><div class="w-full bg-white py-2 rounded"><ul class="flex text-gray-500 text-sm lg:text-base"><li class="inline-flex items-center"><a class="px-1 font-bold bg-pink-500 text-gray-50 rounded" href="/">Ema</a><svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-auto text-gray-400"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg></li><li class="inline-flex items-center"><a class="px-1 font-bold bg-pink-500 text-gray-50 rounded" href="/guide">Guide</a><svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-auto text-gray-400"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg></li><li class="inline-flex items-center text-gray-600"><a>Working with routes</a></li></ul></div></div></div><h1 class="text-6xl my-2 text-center py-2" id="working-with-routes">Working with routes</h1><p class="my-2">Ema gives you the freedom to use any Haskell type for representing your site routes. You don’t need complicated rewrite rules. Routes are best represented using what are known as <em>sum types</em> (or ADT, short for <em>Abstract Data Type</em>). Here’s an example of a route type:</p><pre class="haskell language-haskell"><code class="haskell language-haskell">data Route 
+  = Index
+  | About</code></pre><p class="my-2">This type represents two routes pointing to – the index page (<code>/</code>) and the about page (<code>/about</code>). Designing the route type is only half the job; you will also need to tell Ema how to convert it to / from the browser URL. This is achieved by writing an instance for the <code>Ema</code> typeclass:</p><pre class="haskell language-haskell"><code class="haskell language-haskell">class Ema MyModel Route where 
+  -- Convert our route to browser URL, represented as a list of slugs
+  encodeRoute = \case
+    Index -&gt; []  -- An empty slug represents the index route: index.html
+    About -&gt; [&quot;about&quot;]
+  -- Convert back the browser URL, represented as a list of slugs, to our route
+  decodeRoute = \case
+    [] -&gt; Just Index
+    [&quot;about&quot;] -&gt; Just About
+    _ -&gt; Nothing
+  -- The third method is used during static site generation. 
+  -- This tells Ema which routes to generate .html files for.
+  staticRoutes model =
+    [Index, About]
+  -- The fourth method is optional; if you have static assets to serve, specify
+  -- them here. Paths are relative to current working directory.
+  staticAssets Proxy =
+    [&quot;css&quot;, &quot;images&quot;, &quot;favicon.ico&quot;, &quot;resume.pdf&quot;]</code></pre><p class="my-2">(The <code>MyModel</code> type is explained in the <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/model" title="">earlier section</a>).</p><p class="my-2">That is all there is to it.</p><p class="my-2">You can use whatever complex route types to model your website’s routes, as long as those types are isomorphic to the <a class="text-pink-600 font-bold hover:bg-pink-50" href="/concepts/slug" title="">slug</a> list.</p><h2 class="text-5xl my-2" id="advanced-example">Advanced example</h2><p class="my-2">Here’s one possible way to design the route type for a weblog site,</p><pre class="haskell language-haskell"><code class="haskell language-haskell">data Route
+  = Home 
+  | Blog BlogRoute
+  | Tag TagRoute
+
+data BlogRoute
+  = BlogIndex
+  | BlogPost Ema.Slug
+
+data TagRoute
+  = TagListing
+  | Tag Tag
+
+newtype Tag = Tag Text</code></pre><p class="my-2">Defining <em>hierarchical routes</em> like this is useful if you want to render <em>parts</em> of your HTML as being common to only a subset of your site, such as adding a blog header to all blog pages, but not to tag pages.</p><div class="mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded"><p class="my-2"><span class="py-2 text-xl italic font-bold">Next</span>, with our model and routes in place, <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/render" title="">we will define the HTML for our site</a> using Ema.</p></div></div><footer class="mt-8 text-center text-gray-500">Powered by <a class="font-bold" target="blank" href="https://github.com/srid/ema">Ema</a></footer></div></body></html>
