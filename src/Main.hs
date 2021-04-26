@@ -33,12 +33,26 @@ import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Definition (Pandoc (..))
 import qualified Text.Pandoc.Walk as W
 
+-- ------------------------
+-- Our site route
+-- ------------------------
+
 -- | Represents the relative path to a source (.md) file under some directory.
+--
+-- This will also be our site route type.  That is, `Ema.routeUrl (r ::
+-- MarkdownPath)` gives us the URL to the generated HTML for this markdown file.
+--
+-- If you are using this repo as a template, you might want to use an ADT as
+-- route (eg: data Route = Index | About)
 type MarkdownPath = Tagged "MarkdownPath" (NonEmpty Text)
 
+-- | Represents the top-level index.md
 indexMarkdownPath :: MarkdownPath
 indexMarkdownPath = Tagged $ "index" :| []
 
+-- | Convert foo/bar.md to a @MarkdownPath@
+--
+-- If the file is not a Markdown file, return Nothing.
 mkMarkdownPath :: FilePath -> Maybe MarkdownPath
 mkMarkdownPath = \case
   (splitExtension -> (fp, ".md")) ->
@@ -47,10 +61,12 @@ mkMarkdownPath = \case
   _ ->
     Nothing
 
+-- | Filename of the markdown file without extension
 markdownPathFileBase :: MarkdownPath -> Text
 markdownPathFileBase (Tagged slugs) =
   head $ NE.reverse slugs
 
+-- | For use in breadcrumbs
 markdownPathInits :: MarkdownPath -> NonEmpty MarkdownPath
 markdownPathInits (Tagged ("index" :| [])) =
   one indexMarkdownPath
@@ -70,12 +86,28 @@ markdownPathInits (Tagged (slug :| rest')) =
             Just ys ->
               this : go (untag this) ys
 
+-- ------------------------
+-- Our site model
+-- ------------------------
+
+-- | This is our Ema "model" -- the app state used to generate our site.
+--
+-- It contains the list of all markdown files, parsed as Pandoc AST.
 type MarkdownSources = Tagged "MarkdownSources" (Map MarkdownPath Pandoc)
 
+-- | Once we have a "model" and "route" (as defined above), we should define the
+-- @Ema@ typeclass to tell Ema how to decode/encode our routes, as well as the
+-- list of routes to generate the static site with.
 instance Ema MarkdownSources MarkdownPath where
+  -- Convert a route to URL slugs
   encodeRoute = \case
     Tagged ("index" :| []) -> mempty
     Tagged paths -> toList . fmap (fromString . toString) $ paths
+
+  -- Parse our route from URL slugs
+  --
+  -- For eg., /foo/bar maps to slugs ["foo", "bar"], which in our app gets
+  -- parsed as representing the route to /foo/bar.md.
   decodeRoute = \case
     (nonEmpty -> Nothing) ->
       pure $ Tagged $ one "index"
@@ -84,10 +116,18 @@ instance Ema MarkdownSources MarkdownPath where
       -- Heuristic to let requests to static files (eg: favicon.ico) to pass through
       guard $ not (any (T.isInfixOf ".") parts)
       pure $ Tagged parts
+
+  -- Which routes to generate when generating the static HTML for this site.
   staticRoutes (Map.keys . untag -> spaths) =
     spaths
+
+  -- All static assets (relative to input directory) go here.
   staticAssets _ =
     ["manifest.json", "ema.svg"]
+
+-- ------------------------
+-- Main entry point
+-- ------------------------
 
 log :: MonadLogger m => Text -> m ()
 log = logInfoNS "ema-docs"
@@ -97,7 +137,12 @@ logD = logDebugNS "ema-docs"
 
 main :: IO ()
 main =
+  -- runEma handles the CLI and starts the dev server (or generate static site
+  -- if `gen` argument is passed).  It is designed to work well with ghcid
+  -- (which is what the bin/run script uses).
   runEma render $ \model -> do
+    -- This is the place where we can load and continue to modify our "model"
+    -- It is a run in a (long-running) thread of its own.
     LVar.set model =<< do
       mdFiles <- FileSystem.filesMatching "." ["**/*.md"]
       forM mdFiles readSource
@@ -123,11 +168,19 @@ main =
 newtype BadRoute = BadRoute MarkdownPath
   deriving (Show, Exception)
 
+-- ------------------------
+-- Our site HTML
+-- ------------------------
+
 render :: Ema.CLI.Action -> MarkdownSources -> MarkdownPath -> LByteString
 render emaAction srcs spath = do
   case Map.lookup spath (untag srcs) of
-    Nothing -> throw $ BadRoute spath
+    Nothing ->
+      -- In dev server mode, Ema will display the exceptions in the browser.
+      -- In static generation mode, they will cause the generation to crash.
+      throw $ BadRoute spath
     Just doc -> do
+      -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
       Tailwind.layout emaAction (headHtml spath doc) (bodyHtml srcs spath doc)
 
 headHtml :: MarkdownPath -> Pandoc -> H.Html
@@ -193,13 +246,6 @@ bodyHtml srcs spath doc = do
           ("next", "py-2 text-xl italic font-bold")
         ]
 
-lookupTitleForgiving :: MarkdownSources -> MarkdownPath -> Text
-lookupTitleForgiving srcs spath =
-  fromMaybe (markdownPathFileBase spath) $ do
-    doc <- Map.lookup spath $ untag srcs
-    is <- getPandocH1 doc
-    pure $ plainify is
-
 renderBreadcrumbs :: MarkdownSources -> MarkdownPath -> H.Html
 renderBreadcrumbs srcs spath = do
   whenNotNull (init $ markdownPathInits spath) $ \(toList -> crumbs) ->
@@ -210,12 +256,20 @@ renderBreadcrumbs srcs spath = do
             forM_ crumbs $ \crumb ->
               H.li ! A.class_ "inline-flex items-center" $ do
                 H.a ! A.class_ "px-1 font-bold bg-pink-500 text-gray-50 rounded"
-                  ! routeHref crumb
+                  ! A.href (fromString . toString $ Ema.routeUrl crumb)
                   $ H.text $ lookupTitleForgiving srcs crumb
                 rightArrow
             H.li ! A.class_ "inline-flex items-center text-gray-600" $ do
               H.a $ H.text $ lookupTitleForgiving srcs spath
   where
+    -- This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
+    -- title.
+    lookupTitleForgiving :: MarkdownSources -> MarkdownPath -> Text
+    lookupTitleForgiving srcs' spath' =
+      fromMaybe (markdownPathFileBase spath') $ do
+        doc <- Map.lookup spath' $ untag srcs'
+        is <- getPandocH1 doc
+        pure $ plainify is
     rightArrow =
       H.unsafeByteString $
         encodeUtf8
@@ -223,11 +277,9 @@ renderBreadcrumbs srcs spath = do
           <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-auto text-gray-400"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
           |]
 
-routeHref :: Ema a r => r -> H.Attribute
-routeHref r' =
-  A.href (fromString . toString $ Ema.routeUrl r')
-
+-- ------------------------
 -- Pandoc transformer
+-- ------------------------
 
 rewriteLinks :: (Text -> Text) -> Pandoc -> Pandoc
 rewriteLinks f =
@@ -254,7 +306,9 @@ applyClassLibrary f =
     withPackedClass =
       dimap (T.intercalate " ") (T.splitOn " ")
 
+-- ------------------------
 -- Pandoc renderer
+-- ------------------------
 --
 -- Note that we hardcode tailwind classes, because pandoc AST is not flexible
 -- enough to provide attrs for all inlines/blocks. So we can't rely on Walk to
@@ -387,7 +441,9 @@ rpAttr (id', classes, attrs) =
 data Unsupported = Unsupported
   deriving (Show, Exception)
 
--- Pandoc helpers
+-- ------------------------
+-- Pandoc AST helpers
+-- ------------------------
 
 getPandocH1 :: Pandoc -> Maybe [B.Inline]
 getPandocH1 = listToMaybe . W.query go
