@@ -1,10 +1,9 @@
 {
   description = "Ema documentation source";
-  inputs = {
+  inputs = rec {
     ema.url = "github:srid/ema";
-    # FIXME: uncommenting this gives,
-    #   error: in pure evaluation mode, 'fetchTarball' requires a 'sha256' argument
-    # nixpkgs.follows = "ema";
+    # Use the nixpkgs used by the pinned ema.
+    nixpkgs.follows = "ema/nixpkgs";
 
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat = {

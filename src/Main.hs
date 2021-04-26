@@ -10,7 +10,7 @@
 --
 -- This "example" is actually used to build Ema's documentation site itself. It
 -- is a work in progress currently.
-module Ema.Example.Ex03_Documentation where
+module Main where
 
 import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE

@@ -8,11 +8,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1619461685,
-        "narHash": "sha256-koWdu/7mLfMKWPtnX1SUgzNTwbLBhAfdnCl4VlUUkoA=",
+        "lastModified": 1619473320,
+        "narHash": "sha256-V8dkx3/Sjb/RW9IYKLj6jKcIiUzBlTvdMvT8tuAC8DM=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "8ec177db16a2f7f0e15ea5f8916dd8b0c1f91aa8",
+        "rev": "29f0c4d33c91e7bbe242db8fb55ba9838ebf7a6c",
         "type": "github"
       },
       "original": {
@@ -115,26 +115,15 @@
         "type": "github"
       }
     },
-    "nixpkgs_2": {
-      "locked": {
-        "lastModified": 1619472051,
-        "narHash": "sha256-8A2CmgdpsDA4SWNVCiwiHxnaGZiQ8OVKodOIU+g42Ho=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "8f19637a39b50804103016ac1716c20969bba974",
-        "type": "github"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
-      }
-    },
     "root": {
       "inputs": {
         "ema": "ema",
         "flake-compat": "flake-compat_2",
         "flake-utils": "flake-utils_2",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": [
+          "ema",
+          "nixpkgs"
+        ]
       }
     }
   },
