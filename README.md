@@ -17,7 +17,7 @@ All steps above except the last one need to be done only once.
 
 ## Tips
 
-- This project uses [relude](https://github.com/kowainik/relude) as its prelude
+- This project uses [relude](https://github.com/kowainik/relude) as its prelude, as well as [Tailwind+Blaze](https://ema.srid.ca/guide/tailwind) for CSS framework and HTML DSL. Even though the author highly recommends them, you are of course free to swap them out for the library of your choice.
 - As a first step to using template, 
   - change the project name in .cabal, .flake and hie.yaml files.
   - Change the `cname` in .github/workflows/publish.yaml, or remove it to publish to yourname.github.io
