@@ -180,7 +180,7 @@ bodyHtml srcs spath doc = do
             )
     H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
       "Powered by "
-      H.a ! A.class_ "font-bold" ! A.target "blank" ! A.href "https://github.com/srid/ema" $ "Ema"
+      H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList
@@ -351,7 +351,7 @@ rpInline = \case
   B.Link attr is (url, title) -> do
     let (cls, target) =
           if "://" `T.isInfixOf` url
-            then ("text-pink-600 hover:underline", A.target "_blank")
+            then ("text-pink-600 hover:underline", A.target "_blank" <> A.rel "noopener")
             else ("text-pink-600 font-bold hover:bg-pink-50", mempty)
     H.a
       ! A.class_ cls
