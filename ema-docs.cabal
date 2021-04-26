@@ -17,7 +17,6 @@ category:           Web
 -- bug-reports:
 
 extra-source-files:
-  CHANGELOG.md
   LICENSE
   README.md
 
