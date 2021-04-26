@@ -4,11 +4,16 @@ Use this repository to bootstrap your [Ema](https://ema.srid.ca/) static site. I
 
 ## Getting Started
 
+To develop on the site with full IDE support in Visual Studio Code, follow these steps:
+
 - [Install Nix](https://nixos.org/download.html) & [enable Flakes](https://nixos.wiki/wiki/Flakes)
 - Run `nix-shell --run haskell-language-server` to sanity check your environment 
 - Open as folder in Visual Studio Code
+    - Install the recommended extensions
     - <kbd>Ctrl+Shift+P</kbd> to run command "Nix-Env: Select Environment" and select `shell.nix`. The extension will ask you to reload VSCode at the end.
 - Press <kbd>Ctrl+Shift+B</kbd> in VSCode, or run `bin/run` in terminal, to launch the Ema dev server.
+
+All steps above except the last one need to be done only once.
 
 ## Tips
 

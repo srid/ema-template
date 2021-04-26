@@ -1,6 +1,6 @@
 {
   description = "Ema documentation source";
-  inputs = rec {
+  inputs = {
     ema.url = "github:srid/ema";
     # Use the nixpkgs used by the pinned ema.
     nixpkgs.follows = "ema/nixpkgs";
