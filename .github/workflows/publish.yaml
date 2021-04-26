@@ -1,4 +1,4 @@
-name: "Publish"
+name: "Publish site"
 on:
   # Run only when pushing to master branch
   push:

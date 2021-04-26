@@ -12,7 +12,9 @@ Use this repository to bootstrap your [Ema](https://ema.srid.ca/) static site. I
 
 ## Tips
 
-- As a first step to using template, change the project name in .cabal, .flake and hie.yaml files.
+- As a first step to using template, 
+  - change the project name in .cabal, .flake and hie.yaml files.
+  - Change the `cname` in .github/workflows/publish.yaml, or remove it to publish to yourname.github.io
 - To change the port, see bin/run
 - To change the CLI arguments, see .ghcid
 - To update Ema to latest Git revision, run `nix flake lock --update-input ema`
