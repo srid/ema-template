@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -xe
+export PORT=9001
+exec nix develop -c ghcid
