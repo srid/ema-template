@@ -17,6 +17,7 @@ All steps above except the last one need to be done only once.
 
 ## Tips
 
+- This project uses [relude](https://github.com/kowainik/relude) as its prelude
 - As a first step to using template, 
   - change the project name in .cabal, .flake and hie.yaml files.
   - Change the `cname` in .github/workflows/publish.yaml, or remove it to publish to yourname.github.io

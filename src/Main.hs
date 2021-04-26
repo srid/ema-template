@@ -6,10 +6,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | An advanced example demonstrating how to build documentation sites.
---
--- This "example" is actually used to build Ema's documentation site itself. It
--- is a work in progress currently.
 module Main where
 
 import qualified Commonmark as CM
@@ -23,7 +19,8 @@ import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
 import Data.Tagged (Tagged (Tagged), untag)
 import qualified Data.Text as T
-import Ema (Ema (..), Slug (unSlug), routeUrl, runEma)
+import Ema (Ema (..), Slug (unSlug), runEma)
+import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
@@ -93,7 +90,10 @@ instance Ema MarkdownSources MarkdownPath where
     ["manifest.json", "ema.svg"]
 
 log :: MonadLogger m => Text -> m ()
-log = logInfoNS "Ex03_Documentation"
+log = logInfoNS "ema-docs"
+
+logD :: MonadLogger m => Text -> m ()
+logD = logDebugNS "ema-docs"
 
 main :: IO ()
 main =
@@ -116,7 +116,7 @@ main =
     readSource fp =
       runMaybeT $ do
         spath :: MarkdownPath <- MaybeT $ pure $ mkMarkdownPath fp
-        log $ "Reading " <> toText fp
+        logD $ "Reading " <> toText fp
         s <- readFileText fp
         pure (spath, parseMarkdown s)
 
@@ -175,7 +175,7 @@ bodyHtml srcs spath doc = do
                 target <- mkMarkdownPath $ toString url
                 -- Check that .md links are not broken
                 if Map.member target (untag srcs)
-                  then pure $ routeUrl target
+                  then pure $ Ema.routeUrl target
                   else throw $ BadRoute target
             )
     H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
@@ -225,7 +225,7 @@ renderBreadcrumbs srcs spath = do
 
 routeHref :: Ema a r => r -> H.Attribute
 routeHref r' =
-  A.href (fromString . toString $ routeUrl r')
+  A.href (fromString . toString $ Ema.routeUrl r')
 
 -- Pandoc transformer
 
