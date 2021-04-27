@@ -183,8 +183,8 @@ instance Ema Model MarkdownRoute where
       pure $ MarkdownRoute slugs
 
   -- Which routes to generate when generating the static HTML for this site.
-  staticRoutes (Map.keys . modelDocs -> spaths) =
-    spaths
+  staticRoutes (Map.keys . modelDocs -> mdRoutes) =
+    mdRoutes
 
   -- All static assets (relative to input directory) go here.
   staticAssets _ =
@@ -225,10 +225,10 @@ main =
     readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, Pandoc))
     readSource fp =
       runMaybeT $ do
-        spath :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
+        r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText fp
-        pure (spath, parseMarkdown s)
+        pure (r, parseMarkdown s)
 
 -- ------------------------
 -- Our site HTML
@@ -246,20 +246,20 @@ render emaAction model r = do
       Tailwind.layout emaAction (headHtml r doc) (bodyHtml model r doc)
 
 headHtml :: MarkdownRoute -> Pandoc -> H.Html
-headHtml spath doc = do
+headHtml r doc = do
   H.title $
     H.text $
-      if spath == indexMarkdownRoute
+      if r == indexMarkdownRoute
         then "Ema – next-gen Haskell static site generator"
         else
-          let routeTitle = maybe (Ema.unSlug $ last $ unMarkdownRoute spath) plainify $ getPandocH1 doc
+          let routeTitle = maybe (Ema.unSlug $ last $ unMarkdownRoute r) plainify $ getPandocH1 doc
            in routeTitle <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
   H.link ! A.rel "manifest" ! A.href "/manifest.json"
   H.meta ! A.name "theme-color" ! A.content "#DB2777"
-  unless (spath == indexMarkdownRoute) prismJs
+  unless (r == indexMarkdownRoute) prismJs
   where
     prismJs = do
       H.unsafeByteString . encodeUtf8 $
@@ -274,7 +274,7 @@ headHtml spath doc = do
         |]
 
 bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
-bodyHtml srcs spath doc = do
+bodyHtml model r doc = do
   H.div ! A.class_ "flex justify-center p-4 bg-pink-600 text-gray-100 font-bold text-2xl" $ do
     H.div $ do
       H.b "WIP: "
@@ -282,9 +282,9 @@ bodyHtml srcs spath doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     H.div ! A.class_ "px-2 grid grid-cols-12" $ do
       H.div ! A.class_ "hidden mt-2 md:block md:col-span-3 md:sticky md:top-0 md:h-screen overflow-x-auto" $ do
-        renderSidebarNav srcs spath
+        renderSidebarNav model r
       H.div ! A.class_ "col-span-12 md:col-span-9" $ do
-        renderBreadcrumbs srcs spath
+        renderBreadcrumbs model r
         renderPandoc $
           doc
             & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
@@ -294,7 +294,7 @@ bodyHtml srcs spath doc = do
                   guard $ not $ "://" `T.isInfixOf` url
                   target <- mkMarkdownRoute $ toString url
                   -- Check that .md links are not broken
-                  if modelMember target srcs
+                  if modelMember target model
                     then pure $ Ema.routeUrl target
                     else throw $ BadRoute target
               )
@@ -330,8 +330,8 @@ renderSidebarNav model currentRoute = do
       H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ linkCls ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
-renderBreadcrumbs srcs spath = do
-  whenNotNull (init $ markdownRouteInits spath) $ \(toList -> crumbs) ->
+renderBreadcrumbs model r = do
+  whenNotNull (init $ markdownRouteInits r) $ \(toList -> crumbs) ->
     H.div ! A.class_ "w-full text-gray-600 mt-4 block md:hidden" $ do
       H.div ! A.class_ "flex justify-center" $ do
         H.div ! A.class_ "w-full bg-white py-2 rounded" $ do
@@ -340,10 +340,10 @@ renderBreadcrumbs srcs spath = do
               H.li ! A.class_ "inline-flex items-center" $ do
                 H.a ! A.class_ "px-1 font-bold bg-pink-500 text-gray-50 rounded"
                   ! A.href (fromString . toString $ Ema.routeUrl crumb)
-                  $ H.text $ lookupTitleForgiving srcs crumb
+                  $ H.text $ lookupTitleForgiving model crumb
                 rightArrow
             H.li ! A.class_ "inline-flex items-center text-gray-600" $ do
-              H.a $ H.text $ lookupTitleForgiving srcs spath
+              H.a $ H.text $ lookupTitleForgiving model r
   where
     rightArrow =
       H.unsafeByteString $
@@ -355,9 +355,9 @@ renderBreadcrumbs srcs spath = do
 -- | This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
 -- title.
 lookupTitleForgiving :: Model -> MarkdownRoute -> Text
-lookupTitleForgiving srcs' spath' =
-  fromMaybe (markdownRouteFileBase spath') $ do
-    doc <- modelLookup spath' srcs'
+lookupTitleForgiving model r =
+  fromMaybe (markdownRouteFileBase r) $ do
+    doc <- modelLookup r model
     is <- getPandocH1 doc
     pure $ plainify is
 
@@ -414,7 +414,7 @@ rpBlock = \case
   B.CodeBlock (id', classes, attrs) s ->
     -- Prism friendly classes
     let classes' = flip concatMap classes $ \cls -> [cls, "language-" <> cls]
-     in H.pre ! rpAttr (id', classes', attrs) $ H.code ! rpAttr ("", classes', []) $ H.text s
+     in H.div ! A.class_ "py-0.5" $ H.pre ! rpAttr (id', classes', attrs) $ H.code ! rpAttr ("", classes', []) $ H.text s
   B.RawBlock _ _ ->
     pure ()
   B.BlockQuote bs ->
@@ -444,12 +444,12 @@ rpBlock = \case
   B.Null ->
     pure ()
   where
-    listStyle = "list-inside ml-2"
-    listItemStyle = "py-1.5 "
+    listStyle = "list-inside ml-2 space-y-1 "
+    listItemStyle = ""
 
 headerElem :: Int -> H.Html -> H.Html
 headerElem = \case
-  1 -> H.h1 ! A.class_ ("text-6xl " <> my <> " text-center pb-2")
+  1 -> H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2"
   2 -> H.h2 ! A.class_ ("text-5xl " <> my)
   3 -> H.h3 ! A.class_ ("text-4xl " <> my)
   4 -> H.h4 ! A.class_ ("text-3xl " <> my)
@@ -457,7 +457,7 @@ headerElem = \case
   6 -> H.h6 ! A.class_ ("text-xl " <> my)
   _ -> error "Invalid pandoc header level"
   where
-    my = "my-2"
+    my = "mt-4 mb-2 text-gray-700"
 
 rpInline :: B.Inline -> H.Html
 rpInline = \case
