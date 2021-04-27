@@ -22,7 +22,7 @@ type Model = Map FilePath Text
 Ema.runEma render $ \model -> do
   LVar.set model =<< do
     mdFiles <- FileSystem.filesMatching "." ["**/*.md"]
-    forM mdFiles readMarkdown
+    forM mdFiles readFileText
       <&> Map.fromList 
   FileSystem.onChange "." $ \fp -> \case
     FileSystem.Update ->

@@ -70,6 +70,12 @@ mkMarkdownRoute = \case
   _ ->
     Nothing
 
+markdownRouteSourcePath :: MarkdownRoute -> FilePath
+markdownRouteSourcePath r =
+  if r == indexMarkdownRoute
+    then "index.md"
+    else toString (T.intercalate "/" $ fmap Ema.unSlug $ toList $ unMarkdownRoute r) <> ".md"
+
 -- | Filename of the markdown file without extension
 markdownRouteFileBase :: MarkdownRoute -> Text
 markdownRouteFileBase =
@@ -302,9 +308,12 @@ bodyHtml model r doc = do
                     then pure $ Ema.routeUrl target
                     else throw $ BadRoute target
               )
-        H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
-          "Powered by "
-          H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
+        H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
+          let editUrl = fromString $ "https://github.com/srid/ema-docs/edit/master/content/" <> markdownRouteSourcePath r
+          H.a ! A.href editUrl ! A.target "blank" ! A.rel "noopener" ! A.title "Edit this page on GitHub" $ editIcon
+          H.div $ do
+            "Powered by "
+            H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList
@@ -316,6 +325,15 @@ bodyHtml model r doc = do
           ("last", "mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded"),
           ("next", "py-2 text-xl italic font-bold")
         ]
+    editIcon =
+      H.unsafeByteString $
+        encodeUtf8
+          [text|
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+            <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
+          </svg>
+          |]
 
 renderSidebarNav :: Model -> MarkdownRoute -> H.Html
 renderSidebarNav model currentRoute = do
