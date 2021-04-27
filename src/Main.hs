@@ -120,7 +120,10 @@ navTree :: Tree Slug
 navTree =
   Node
     "index"
-    [ Node "start" mempty,
+    [ Node
+        "start"
+        [ Node "tutorial" mempty
+        ],
       Node
         "guide"
         [ Node "model" mempty,
