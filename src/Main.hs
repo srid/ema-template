@@ -282,7 +282,7 @@ bodyHtml model r doc = do
   H.div ! A.class_ "flex justify-center p-4 bg-pink-600 text-gray-100 font-bold text-2xl" $ do
     H.div $ do
       H.b "WIP: "
-      "Documentation is still being written"
+      "Documentation is nearly complete"
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     H.div ! A.class_ "px-2 grid grid-cols-12" $ do
       H.div ! A.class_ "hidden mt-2 md:block md:col-span-3 md:sticky md:top-0 md:h-screen overflow-x-auto" $ do
