@@ -19,7 +19,7 @@ All but the final step need to be done only once.
 
 - This project uses [relude](https://github.com/kowainik/relude) as its prelude, as well as [Tailwind+Blaze](https://ema.srid.ca/guide/tailwind) as CSS utility and HTML DSL. Even though the author highly recommends them, you are of course free to swap them out for the library of your choice.
 - As a first step to using this template, 
-  - change the project name in .cabal, .flake and hie.yaml files.
+  - change the project name in .cabal, flake.nix and hie.yaml files.
   - Change the `cname` in .github/workflows/publish.yaml, or remove it to publish to yourname.github.io
 - Configuration:
   - To change the port, see file bin/run

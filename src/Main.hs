@@ -4,7 +4,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This code generates the site at https://ema.srid.ca/ - and as such it might
 -- be a bit too complex example to begin with.
@@ -22,9 +21,8 @@ import qualified Data.LVar as LVar
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
-import Data.Tagged (Tagged (Tagged), untag)
 import qualified Data.Text as T
-import Data.Tree
+import Data.Tree (Tree (Node))
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
@@ -50,14 +48,15 @@ import qualified Text.Pandoc.Walk as W
 --
 -- If you are using this repo as a template, you might want to use an ADT as
 -- route (eg: data Route = Index | About)
-type MarkdownRoute = Tagged "MarkdownRoute" (NonEmpty Slug)
+newtype MarkdownRoute = MarkdownRoute {unMarkdownRoute :: NonEmpty Slug}
+  deriving (Eq, Ord, Show)
 
 newtype BadRoute = BadRoute MarkdownRoute
   deriving (Show, Exception)
 
 -- | Represents the top-level index.md
 indexMarkdownRoute :: MarkdownRoute
-indexMarkdownRoute = Tagged $ "index" :| []
+indexMarkdownRoute = MarkdownRoute $ "index" :| []
 
 -- | Convert foo/bar.md to a @MarkdownRoute@
 --
@@ -66,34 +65,34 @@ mkMarkdownRoute :: FilePath -> Maybe MarkdownRoute
 mkMarkdownRoute = \case
   (splitExtension -> (fp, ".md")) ->
     let slugs = fromString . toString . T.dropWhileEnd (== '/') . toText <$> splitPath fp
-     in Tagged <$> nonEmpty slugs
+     in MarkdownRoute <$> nonEmpty slugs
   _ ->
     Nothing
 
 -- | Filename of the markdown file without extension
 markdownRouteFileBase :: MarkdownRoute -> Text
-markdownRouteFileBase (Tagged slugs) =
-  Ema.unSlug $ head $ NE.reverse slugs
+markdownRouteFileBase =
+  Ema.unSlug . head . NE.reverse . unMarkdownRoute
 
 -- | For use in breadcrumbs
 markdownRouteInits :: MarkdownRoute -> NonEmpty MarkdownRoute
-markdownRouteInits (Tagged ("index" :| [])) =
+markdownRouteInits (MarkdownRoute ("index" :| [])) =
   one indexMarkdownRoute
-markdownRouteInits (Tagged (slug :| rest')) =
+markdownRouteInits (MarkdownRoute (slug :| rest')) =
   indexMarkdownRoute :| case nonEmpty rest' of
     Nothing ->
-      one $ Tagged (one slug)
+      one $ MarkdownRoute (one slug)
     Just rest ->
-      Tagged (one slug) : go (one slug) rest
+      MarkdownRoute (one slug) : go (one slug) rest
   where
     go :: NonEmpty Slug -> NonEmpty Slug -> [MarkdownRoute]
     go x (y :| ys') =
-      let this = Tagged (x <> one y)
+      let this = MarkdownRoute (x <> one y)
        in case nonEmpty ys' of
             Nothing ->
               one this
             Just ys ->
-              this : go (untag this) ys
+              this : go (unMarkdownRoute this) ys
 
 -- ------------------------
 -- Our site model
@@ -168,8 +167,8 @@ modelDelete k model =
 instance Ema Model MarkdownRoute where
   -- Convert a route to URL slugs
   encodeRoute = \case
-    Tagged ("index" :| []) -> mempty
-    Tagged paths -> toList paths
+    MarkdownRoute ("index" :| []) -> mempty
+    MarkdownRoute paths -> toList paths
 
   -- Parse our route from URL slugs
   --
@@ -177,11 +176,11 @@ instance Ema Model MarkdownRoute where
   -- parsed as representing the route to /foo/bar.md.
   decodeRoute = \case
     (nonEmpty -> Nothing) ->
-      pure $ Tagged $ one "index"
+      pure $ MarkdownRoute $ one "index"
     (nonEmpty -> Just slugs) -> do
       -- Heuristic to let requests to static files (eg: favicon.ico) to pass through
       guard $ not (any (T.isInfixOf "." . Ema.unSlug) slugs)
-      pure $ Tagged slugs
+      pure $ MarkdownRoute slugs
 
   -- Which routes to generate when generating the static HTML for this site.
   staticRoutes (Map.keys . modelDocs -> spaths) =
@@ -253,7 +252,7 @@ headHtml spath doc = do
       if spath == indexMarkdownRoute
         then "Ema – next-gen Haskell static site generator"
         else
-          let routeTitle = maybe (Ema.unSlug $ last $ untag spath) plainify $ getPandocH1 doc
+          let routeTitle = maybe (Ema.unSlug $ last $ unMarkdownRoute spath) plainify $ getPandocH1 doc
            in routeTitle <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
@@ -317,13 +316,13 @@ bodyHtml srcs spath doc = do
 renderSidebarNav :: Model -> MarkdownRoute -> H.Html
 renderSidebarNav model currentRoute = do
   let (Node _rootSlug topLevels) = navTree
-  H.div ! A.class_ "pl-2 " $ renderRoute "" indexMarkdownRoute
+  H.div ! A.class_ "pl-2 font-bold" $ renderRoute "" indexMarkdownRoute
   go [] topLevels
   where
     go parSlugs xs =
       H.div ! A.class_ "pl-2" $ do
         forM_ xs $ \(Node slug children) -> do
-          let hereRoute :: MarkdownRoute = Tagged $ NE.reverse $ slug :| parSlugs
+          let hereRoute = MarkdownRoute $ NE.reverse $ slug :| parSlugs
           renderRoute (if null parSlugs || not (null children) then "" else "text-gray-600") hereRoute
           go ([slug] <> parSlugs) children
     renderRoute c r = do

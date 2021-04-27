@@ -17,23 +17,24 @@ class Ema MyModel Route where
     ["about"] -> Just About
     _ -> Nothing
 
-  -- The third method is used during static site generation. 
+  -- The third method is optional; and used during static site generation. 
   -- This tells Ema which routes to generate .html files for.
+  -- By default, Enum & Bounded will be used to determine this list.
   staticRoutes model =
     [Index, About]
 
-  -- The fourth method is optional; if you have static assets to serve, specify
+  -- The fourth method is also optional; if you have static assets to serve, specify
   -- them here. Paths are relative to current working directory.
   staticAssets Proxy =
     ["css", "images", "favicon.ico", "resume.pdf"]
 ```
 
-This instance does the following:
+The `Ema` typeclass has four methods, with the last two of them being optional with default implementations:
 
 1. Define `encodeRoute` that converts our route type to a browser URL [slug](concepts/slug.md) path representing relative URLs like `/foo/bar`
 2. Define `decodeRoute` that does the *reverse* converstion (the conversion must be isomorphic)
-3. Define `staticRoutes` that returns the list of routes to statically generate
-4. Optionally, define the list of static assets to copy over as-is during static generation
+3. _Optionally_, define `staticRoutes` indicating the routes to statically generate
+4. _Optionally_, define the list of static assets to copy over as-is during static generation
 
 ## `runEma`
 
