@@ -70,15 +70,15 @@ mkMarkdownRoute = \case
     Nothing
 
 -- | Filename of the markdown file without extension
-markdownPathFileBase :: MarkdownRoute -> Text
-markdownPathFileBase (Tagged slugs) =
+markdownRouteFileBase :: MarkdownRoute -> Text
+markdownRouteFileBase (Tagged slugs) =
   Ema.unSlug $ head $ NE.reverse slugs
 
 -- | For use in breadcrumbs
-markdownPathInits :: MarkdownRoute -> NonEmpty MarkdownRoute
-markdownPathInits (Tagged ("index" :| [])) =
+markdownRouteInits :: MarkdownRoute -> NonEmpty MarkdownRoute
+markdownRouteInits (Tagged ("index" :| [])) =
   one indexMarkdownRoute
-markdownPathInits (Tagged (slug :| rest')) =
+markdownRouteInits (Tagged (slug :| rest')) =
   indexMarkdownRoute :| case nonEmpty rest' of
     Nothing ->
       one $ Tagged (one slug)
@@ -277,7 +277,7 @@ bodyHtml srcs spath doc = do
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs srcs spath = do
-  whenNotNull (init $ markdownPathInits spath) $ \(toList -> crumbs) ->
+  whenNotNull (init $ markdownRouteInits spath) $ \(toList -> crumbs) ->
     H.div ! A.class_ "w-full text-gray-600 mt-4" $ do
       H.div ! A.class_ "flex justify-center" $ do
         H.div ! A.class_ "w-full bg-white py-2 rounded" $ do
@@ -295,7 +295,7 @@ renderBreadcrumbs srcs spath = do
     -- title.
     lookupTitleForgiving :: Model -> MarkdownRoute -> Text
     lookupTitleForgiving srcs' spath' =
-      fromMaybe (markdownPathFileBase spath') $ do
+      fromMaybe (markdownRouteFileBase spath') $ do
         doc <- modelLookup spath' srcs'
         is <- getPandocH1 doc
         pure $ plainify is
