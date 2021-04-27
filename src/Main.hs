@@ -282,7 +282,7 @@ bodyHtml srcs spath doc = do
       "Documentation is still being written"
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     H.div ! A.class_ "px-2 grid grid-cols-12" $ do
-      H.div ! A.class_ "hidden md:block md:col-span-3 md:sticky md:top-0 md:h-screen overflow-x-auto" $ do
+      H.div ! A.class_ "hidden mt-2 md:block md:col-span-3 md:sticky md:top-0 md:h-screen overflow-x-auto" $ do
         renderSidebarNav srcs spath
       H.div ! A.class_ "col-span-12 md:col-span-9" $ do
         renderBreadcrumbs srcs spath
@@ -327,8 +327,8 @@ renderSidebarNav model currentRoute = do
           renderRoute (if null parSlugs || not (null children) then "" else "text-gray-600") hereRoute
           go ([slug] <> parSlugs) children
     renderRoute c r = do
-      let cls = if r == currentRoute then "text-pink-600" else ""
-      H.div ! A.class_ (cls <> " my-2 " <> c) $ H.a ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
+      let linkCls = if r == currentRoute then "text-pink-600" else ""
+      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ linkCls ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs srcs spath = do
