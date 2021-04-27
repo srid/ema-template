@@ -31,7 +31,6 @@ import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
-import qualified Shower
 import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -129,10 +128,13 @@ navTree =
           Node "routes" mempty,
           Node "class" mempty,
           Node "render" mempty,
-          -- Helpers
-          Node "tailwind" mempty,
-          Node "filesystem" mempty,
-          Node "markdown" mempty
+          Node
+            "helpers"
+            [ -- Helpers
+              Node "tailwind" mempty,
+              Node "filesystem" mempty,
+              Node "markdown" mempty
+            ]
         ],
       Node
         "concepts"
@@ -322,8 +324,8 @@ renderSidebarNav model currentRoute = do
       H.div ! A.class_ "pl-2" $ do
         forM_ xs $ \(Node slug children) -> do
           let hereRoute :: MarkdownRoute = Tagged $ NE.reverse $ slug :| parSlugs
-          renderRoute (if null parSlugs || not (null children) then "font-bold" else "") hereRoute
-          go (parSlugs <> [slug]) children
+          renderRoute (if null parSlugs || not (null children) then "" else "text-gray-600") hereRoute
+          go ([slug] <> parSlugs) children
     renderRoute c r = do
       let cls = if r == currentRoute then "text-pink-600" else ""
       H.div ! A.class_ (cls <> " my-2 " <> c) $ H.a ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
