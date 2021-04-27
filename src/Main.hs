@@ -3,13 +3,14 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
 
 -- | This code generates the site at https://ema.srid.ca/ - and as such it might
--- be a bit too complex example to begin with.
+-- be a bit too complex example to begin with, unless you intend to create a
+-- Markdown-based site.
 --
--- For a simpler example, see
+-- For a simpler example, check out one of the following:
 --   https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Clock.hs
+--   https://github.com/srid/www.srid.ca/blob/master/src/Main.hs
 module Main where
 
 import qualified Commonmark as CM
