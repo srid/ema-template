@@ -282,7 +282,7 @@ bodyHtml srcs spath doc = do
       "Documentation is still being written"
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     H.div ! A.class_ "px-2 grid grid-cols-12" $ do
-      H.div ! A.class_ "hidden md:block md:col-span-3 overflow-x-auto" $ do
+      H.div ! A.class_ "hidden md:block md:col-span-3 md:sticky md:top-0 md:h-screen overflow-x-auto" $ do
         renderSidebarNav srcs spath
       H.div ! A.class_ "col-span-12 md:col-span-9" $ do
         renderBreadcrumbs srcs spath
@@ -299,9 +299,9 @@ bodyHtml srcs spath doc = do
                     then pure $ Ema.routeUrl target
                     else throw $ BadRoute target
               )
-    H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
-      "Powered by "
-      H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
+        H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
+          "Powered by "
+          H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList
@@ -317,7 +317,7 @@ bodyHtml srcs spath doc = do
 renderSidebarNav :: Model -> MarkdownRoute -> H.Html
 renderSidebarNav model currentRoute = do
   let (Node _rootSlug topLevels) = navTree
-  H.div ! A.class_ "pl-2 mt-8" $ renderRoute "" indexMarkdownRoute
+  H.div ! A.class_ "pl-2 " $ renderRoute "" indexMarkdownRoute
   go [] topLevels
   where
     go parSlugs xs =
@@ -333,7 +333,7 @@ renderSidebarNav model currentRoute = do
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs srcs spath = do
   whenNotNull (init $ markdownRouteInits spath) $ \(toList -> crumbs) ->
-    H.div ! A.class_ "w-full text-gray-600 mt-4" $ do
+    H.div ! A.class_ "w-full text-gray-600 mt-4 block md:hidden" $ do
       H.div ! A.class_ "flex justify-center" $ do
         H.div ! A.class_ "w-full bg-white py-2 rounded" $ do
           H.ul ! A.class_ "flex text-gray-500 text-sm lg:text-base" $ do
