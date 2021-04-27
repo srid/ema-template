@@ -4,4 +4,4 @@
 
 ```haskell
 logInfoNS "myapp" "This is an info message"
-logDebugNS "myapp" "This is a debug message"
+logDebugNS "myapp" "This is a debug message info"

@@ -10,3 +10,5 @@ render emaAction model route = do
   Tailwind.layout emaAction (H.title "My site") $ do 
     H.p "Hello world"
 ```
+
+The very site you are viewing (ema.srid.ca) is a live demonstration of this helper.
