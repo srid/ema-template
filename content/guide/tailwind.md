@@ -1,8 +1,12 @@
 # Using Tailwind CSS
 
-TODO
+The `Ema.Helper.Tailwind` module provides a `layout` function that uses [twind](https://twind.dev/) shim that is used in the statically generated site, and otherwise uses Tailwind CSS from CDN in the dev server mode. This helper is for those that **use [Tailwind CSS](https://tailwindcss.com/) in conjunction with [blaze-html](https://hackage.haskell.org/package/blaze-html) DSL**.
 
-- the helper does this:
-    - Use CDN in dev mode
-    - Use twind shim in static mode for better lighthouse score
-- also uses blaze html
+To use the layout helper in your [render](guide/render.md) function:
+
+```haskell
+render :: Ema.CLI.Action -> MyModel -> MyRoute -> LByteString
+render emaAction model route = do
+  Tailwind.layout emaAction (H.title "My site") $ do 
+    H.p "Hello world"
+```

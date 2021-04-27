@@ -372,7 +372,7 @@ rpBlock = \case
 
 headerElem :: Int -> H.Html -> H.Html
 headerElem = \case
-  1 -> H.h1 ! A.class_ ("text-6xl " <> my <> " text-center py-2")
+  1 -> H.h1 ! A.class_ ("text-6xl " <> my <> " text-center pb-2")
   2 -> H.h2 ! A.class_ ("text-5xl " <> my)
   3 -> H.h3 ! A.class_ ("text-4xl " <> my)
   4 -> H.h4 ! A.class_ ("text-3xl " <> my)
