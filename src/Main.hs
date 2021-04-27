@@ -6,6 +6,11 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- | This code generates the site at https://ema.srid.ca/ - and as such it might
+-- be a bit too complex example to begin with.
+--
+-- For a simpler example, see
+--   https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Clock.hs
 module Main where
 
 import qualified Commonmark as CM
@@ -185,11 +190,13 @@ render emaAction srcs spath = do
 
 headHtml :: MarkdownPath -> Pandoc -> H.Html
 headHtml spath doc = do
-  let siteTitle = "Ema"
-      routeTitle = maybe (last $ untag spath) plainify $ getPandocH1 doc
   H.title $
     H.text $
-      if routeTitle == siteTitle then siteTitle else routeTitle <> " – " <> siteTitle
+      if spath == indexMarkdownPath
+        then "Ema – next-gen Haskell static site generator"
+        else
+          let routeTitle = maybe (last $ untag spath) plainify $ getPandocH1 doc
+           in routeTitle <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
@@ -211,7 +218,7 @@ headHtml spath doc = do
 
 bodyHtml :: MarkdownSources -> MarkdownPath -> Pandoc -> H.Html
 bodyHtml srcs spath doc = do
-  H.div ! A.class_ "flex justify-center p-4 bg-red-500 text-gray-100 font-bold text-2xl" $ do
+  H.div ! A.class_ "flex justify-center p-4 bg-pink-600 text-gray-100 font-bold text-2xl" $ do
     H.div $ do
       H.b "WIP: "
       "Documentation is still being written"
@@ -361,7 +368,7 @@ rpBlock = \case
     pure ()
   where
     listStyle = "list-inside ml-2"
-    listItemStyle = "text-xl py-1.5 lg:py-0 lg:text-base"
+    listItemStyle = "py-1.5 "
 
 headerElem :: Int -> H.Html -> H.Html
 headerElem = \case
