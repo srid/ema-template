@@ -7,6 +7,8 @@ As first steps, perform the following before proceeding to the tutorial section 
 1. Clone [the template repository](https://github.com/srid/ema-docs) locally
 1. Run `bin/run` and access the site at <http://localhost:9001>
 
+That should give you a preview of Ema site. Read the tutorial that follows to get acquainted with writing code using Ema.
+
 ## Tutorial
 
 **TODO**

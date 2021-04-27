@@ -24,7 +24,7 @@ import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
 import Data.Tagged (Tagged (Tagged), untag)
 import qualified Data.Text as T
-import Ema (Ema (..), Slug (unSlug), runEma)
+import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
@@ -45,44 +45,47 @@ import qualified Text.Pandoc.Walk as W
 -- | Represents the relative path to a source (.md) file under some directory.
 --
 -- This will also be our site route type.  That is, `Ema.routeUrl (r ::
--- MarkdownPath)` gives us the URL to the generated HTML for this markdown file.
+-- MarkdownRoute)` gives us the URL to the generated HTML for this markdown file.
 --
 -- If you are using this repo as a template, you might want to use an ADT as
 -- route (eg: data Route = Index | About)
-type MarkdownPath = Tagged "MarkdownPath" (NonEmpty Text)
+type MarkdownRoute = Tagged "MarkdownRoute" (NonEmpty Slug)
+
+newtype BadRoute = BadRoute MarkdownRoute
+  deriving (Show, Exception)
 
 -- | Represents the top-level index.md
-indexMarkdownPath :: MarkdownPath
-indexMarkdownPath = Tagged $ "index" :| []
+indexMarkdownRoute :: MarkdownRoute
+indexMarkdownRoute = Tagged $ "index" :| []
 
--- | Convert foo/bar.md to a @MarkdownPath@
+-- | Convert foo/bar.md to a @MarkdownRoute@
 --
 -- If the file is not a Markdown file, return Nothing.
-mkMarkdownPath :: FilePath -> Maybe MarkdownPath
-mkMarkdownPath = \case
+mkMarkdownRoute :: FilePath -> Maybe MarkdownRoute
+mkMarkdownRoute = \case
   (splitExtension -> (fp, ".md")) ->
-    let slugs = T.dropWhileEnd (== '/') . toText <$> splitPath fp
+    let slugs = fromString . toString . T.dropWhileEnd (== '/') . toText <$> splitPath fp
      in Tagged <$> nonEmpty slugs
   _ ->
     Nothing
 
 -- | Filename of the markdown file without extension
-markdownPathFileBase :: MarkdownPath -> Text
+markdownPathFileBase :: MarkdownRoute -> Text
 markdownPathFileBase (Tagged slugs) =
-  head $ NE.reverse slugs
+  Ema.unSlug $ head $ NE.reverse slugs
 
 -- | For use in breadcrumbs
-markdownPathInits :: MarkdownPath -> NonEmpty MarkdownPath
+markdownPathInits :: MarkdownRoute -> NonEmpty MarkdownRoute
 markdownPathInits (Tagged ("index" :| [])) =
-  one indexMarkdownPath
+  one indexMarkdownRoute
 markdownPathInits (Tagged (slug :| rest')) =
-  indexMarkdownPath :| case nonEmpty rest' of
+  indexMarkdownRoute :| case nonEmpty rest' of
     Nothing ->
       one $ Tagged (one slug)
     Just rest ->
       Tagged (one slug) : go (one slug) rest
   where
-    go :: NonEmpty Text -> NonEmpty Text -> [MarkdownPath]
+    go :: NonEmpty Slug -> NonEmpty Slug -> [MarkdownRoute]
     go x (y :| ys') =
       let this = Tagged (x <> one y)
        in case nonEmpty ys' of
@@ -98,16 +101,39 @@ markdownPathInits (Tagged (slug :| rest')) =
 -- | This is our Ema "model" -- the app state used to generate our site.
 --
 -- It contains the list of all markdown files, parsed as Pandoc AST.
-type MarkdownSources = Tagged "MarkdownSources" (Map MarkdownPath Pandoc)
+data Model = Model
+  { modelDocs :: Map MarkdownRoute Pandoc
+  }
+  deriving (Eq)
+
+mkModel :: [(MarkdownRoute, Pandoc)] -> Model
+mkModel =
+  Model . Map.fromList
+
+modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
+modelLookup k =
+  Map.lookup k . modelDocs
+
+modelMember :: MarkdownRoute -> Model -> Bool
+modelMember k =
+  Map.member k . modelDocs
+
+modelInsert :: MarkdownRoute -> Pandoc -> Model -> Model
+modelInsert k v model =
+  model {modelDocs = Map.insert k v (modelDocs model)}
+
+modelDelete :: MarkdownRoute -> Model -> Model
+modelDelete k model =
+  model {modelDocs = Map.delete k (modelDocs model)}
 
 -- | Once we have a "model" and "route" (as defined above), we should define the
 -- @Ema@ typeclass to tell Ema how to decode/encode our routes, as well as the
 -- list of routes to generate the static site with.
-instance Ema MarkdownSources MarkdownPath where
+instance Ema Model MarkdownRoute where
   -- Convert a route to URL slugs
   encodeRoute = \case
     Tagged ("index" :| []) -> mempty
-    Tagged paths -> toList . fmap (fromString . toString) $ paths
+    Tagged paths -> toList paths
 
   -- Parse our route from URL slugs
   --
@@ -117,13 +143,12 @@ instance Ema MarkdownSources MarkdownPath where
     (nonEmpty -> Nothing) ->
       pure $ Tagged $ one "index"
     (nonEmpty -> Just slugs) -> do
-      let parts = toText . unSlug <$> slugs
       -- Heuristic to let requests to static files (eg: favicon.ico) to pass through
-      guard $ not (any (T.isInfixOf ".") parts)
-      pure $ Tagged parts
+      guard $ not (any (T.isInfixOf "." . Ema.unSlug) slugs)
+      pure $ Tagged slugs
 
   -- Which routes to generate when generating the static HTML for this site.
-  staticRoutes (Map.keys . untag -> spaths) =
+  staticRoutes (Map.keys . modelDocs -> spaths) =
     spaths
 
   -- All static assets (relative to input directory) go here.
@@ -145,64 +170,61 @@ main =
   -- runEma handles the CLI and starts the dev server (or generate static site
   -- if `gen` argument is passed).  It is designed to work well with ghcid
   -- (which is what the bin/run script uses).
-  runEma render $ \model -> do
+  Ema.runEma render $ \model -> do
     -- This is the place where we can load and continue to modify our "model"
     -- It is a run in a (long-running) thread of its own.
     LVar.set model =<< do
       mdFiles <- FileSystem.filesMatching "." ["**/*.md"]
       forM mdFiles readSource
-        <&> Tagged . Map.fromList . catMaybes
+        <&> mkModel . catMaybes
     FileSystem.onChange "." $ \fp -> \case
       FileSystem.Update ->
-        whenJustM (readSource fp) $ \(spath, s) -> do
-          log $ "Update: " <> show spath
-          LVar.modify model $ Tagged . Map.insert spath s . untag
+        whenJustM (readSource fp) $ \(r, doc) -> do
+          log $ "Update: " <> show r
+          LVar.modify model $ modelInsert r doc
       FileSystem.Delete ->
-        whenJust (mkMarkdownPath fp) $ \spath -> do
-          log $ "Delete: " <> show spath
-          LVar.modify model $ Tagged . Map.delete spath . untag
+        whenJust (mkMarkdownRoute fp) $ \r -> do
+          log $ "Delete: " <> show r
+          LVar.modify model $ modelDelete r
   where
-    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownPath, Pandoc))
+    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, Pandoc))
     readSource fp =
       runMaybeT $ do
-        spath :: MarkdownPath <- MaybeT $ pure $ mkMarkdownPath fp
+        spath :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText fp
         pure (spath, parseMarkdown s)
-
-newtype BadRoute = BadRoute MarkdownPath
-  deriving (Show, Exception)
 
 -- ------------------------
 -- Our site HTML
 -- ------------------------
 
-render :: Ema.CLI.Action -> MarkdownSources -> MarkdownPath -> LByteString
-render emaAction srcs spath = do
-  case Map.lookup spath (untag srcs) of
+render :: Ema.CLI.Action -> Model -> MarkdownRoute -> LByteString
+render emaAction model r = do
+  case modelLookup r model of
     Nothing ->
       -- In dev server mode, Ema will display the exceptions in the browser.
       -- In static generation mode, they will cause the generation to crash.
-      throw $ BadRoute spath
+      throw $ BadRoute r
     Just doc -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      Tailwind.layout emaAction (headHtml spath doc) (bodyHtml srcs spath doc)
+      Tailwind.layout emaAction (headHtml r doc) (bodyHtml model r doc)
 
-headHtml :: MarkdownPath -> Pandoc -> H.Html
+headHtml :: MarkdownRoute -> Pandoc -> H.Html
 headHtml spath doc = do
   H.title $
     H.text $
-      if spath == indexMarkdownPath
+      if spath == indexMarkdownRoute
         then "Ema – next-gen Haskell static site generator"
         else
-          let routeTitle = maybe (last $ untag spath) plainify $ getPandocH1 doc
+          let routeTitle = maybe (Ema.unSlug $ last $ untag spath) plainify $ getPandocH1 doc
            in routeTitle <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
   H.link ! A.rel "manifest" ! A.href "/manifest.json"
   H.meta ! A.name "theme-color" ! A.content "#DB2777"
-  unless (spath == indexMarkdownPath) prismJs
+  unless (spath == indexMarkdownRoute) prismJs
   where
     prismJs = do
       H.unsafeByteString . encodeUtf8 $
@@ -216,7 +238,7 @@ headHtml spath doc = do
         <link href="/ema.svg" rel="icon" />
         |]
 
-bodyHtml :: MarkdownSources -> MarkdownPath -> Pandoc -> H.Html
+bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml srcs spath doc = do
   H.div ! A.class_ "flex justify-center p-4 bg-pink-600 text-gray-100 font-bold text-2xl" $ do
     H.div $ do
@@ -229,12 +251,12 @@ bodyHtml srcs spath doc = do
         doc
           & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
           & rewriteLinks
-            -- Rewrite .md links to @MarkdownPath@
+            -- Rewrite .md links to @MarkdownRoute@
             ( \url -> fromMaybe url $ do
                 guard $ not $ "://" `T.isInfixOf` url
-                target <- mkMarkdownPath $ toString url
+                target <- mkMarkdownRoute $ toString url
                 -- Check that .md links are not broken
-                if Map.member target (untag srcs)
+                if modelMember target srcs
                   then pure $ Ema.routeUrl target
                   else throw $ BadRoute target
             )
@@ -253,7 +275,7 @@ bodyHtml srcs spath doc = do
           ("next", "py-2 text-xl italic font-bold")
         ]
 
-renderBreadcrumbs :: MarkdownSources -> MarkdownPath -> H.Html
+renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs srcs spath = do
   whenNotNull (init $ markdownPathInits spath) $ \(toList -> crumbs) ->
     H.div ! A.class_ "w-full text-gray-600 mt-4" $ do
@@ -271,10 +293,10 @@ renderBreadcrumbs srcs spath = do
   where
     -- This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
     -- title.
-    lookupTitleForgiving :: MarkdownSources -> MarkdownPath -> Text
+    lookupTitleForgiving :: Model -> MarkdownRoute -> Text
     lookupTitleForgiving srcs' spath' =
       fromMaybe (markdownPathFileBase spath') $ do
-        doc <- Map.lookup spath' $ untag srcs'
+        doc <- modelLookup spath' srcs'
         is <- getPandocH1 doc
         pure $ plainify is
     rightArrow =

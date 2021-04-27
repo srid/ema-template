@@ -15,7 +15,7 @@
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
       let
         overlays = [ ];
-        pkgs = import nixpkgs { inherit system overlays; };
+        pkgs = import nixpkgs { inherit system overlays; config.allowBroken = true; };
         project = returnShellEnv:
           pkgs.haskellPackages.developPackage {
             inherit returnShellEnv;
@@ -25,6 +25,7 @@
             overrides = self: super: with pkgs.haskell.lib; {
               ema = inputs.ema.defaultPackage.${system};
               lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
+              PathTree = doJailbreak super.PathTree;
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;
