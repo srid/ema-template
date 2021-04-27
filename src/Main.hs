@@ -282,9 +282,9 @@ bodyHtml srcs spath doc = do
       "Documentation is still being written"
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     H.div ! A.class_ "px-2 grid grid-cols-12" $ do
-      H.div ! A.class_ "col-span-3 overflow-x-auto" $ do
+      H.div ! A.class_ "hidden md:block md:col-span-3 overflow-x-auto" $ do
         renderSidebarNav srcs spath
-      H.div ! A.class_ "col-span-9" $ do
+      H.div ! A.class_ "col-span-12 md:col-span-9" $ do
         renderBreadcrumbs srcs spath
         renderPandoc $
           doc
