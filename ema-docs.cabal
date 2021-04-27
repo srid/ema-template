@@ -36,6 +36,7 @@ executable ema-docs
     , relude
     , text
     , time
+    , shower
     , unliftio
     , commonmark
     , commonmark-extensions

@@ -5,4 +5,3 @@
 * [Slug](concepts/slug.md)
 * [CLI](concepts/cli.md)
 * [Logging](concepts/logging.md)
-* [Haskell's Safety](concepts/haskell-safety.md)

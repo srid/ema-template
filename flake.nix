@@ -25,7 +25,6 @@
             overrides = self: super: with pkgs.haskell.lib; {
               ema = inputs.ema.defaultPackage.${system};
               lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
-              PathTree = doJailbreak super.PathTree;
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;

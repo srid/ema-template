@@ -24,12 +24,14 @@ import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
 import Data.Tagged (Tagged (Tagged), untag)
 import qualified Data.Text as T
+import Data.Tree
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
+import qualified Shower
 import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -104,11 +106,43 @@ markdownRouteInits (Tagged (slug :| rest')) =
 data Model = Model
   { modelDocs :: Map MarkdownRoute Pandoc
   }
-  deriving (Eq)
+  deriving (Eq, Show)
 
 mkModel :: [(MarkdownRoute, Pandoc)] -> Model
-mkModel =
-  Model . Map.fromList
+mkModel (Map.fromList -> docs) =
+  Model
+    { modelDocs = docs
+    }
+
+-- | Hardcoded nav tree.
+--
+-- TODO: Build it automatically from model. Requires defining sort order of
+-- children somewhere (yaml?)
+navTree :: Tree Slug
+navTree =
+  Node
+    "index"
+    [ Node "start" mempty,
+      Node
+        "guide"
+        [ Node "model" mempty,
+          Node "routes" mempty,
+          Node "class" mempty,
+          Node "render" mempty,
+          -- Helpers
+          Node "tailwind" mempty,
+          Node "filesystem" mempty,
+          Node "markdown" mempty
+        ],
+      Node
+        "concepts"
+        [ Node "hot-reload" mempty,
+          Node "lvar" mempty,
+          Node "slug" mempty,
+          Node "cli" mempty,
+          Node "logging" mempty
+        ]
+    ]
 
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
@@ -245,21 +279,24 @@ bodyHtml srcs spath doc = do
       H.b "WIP: "
       "Documentation is still being written"
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
-    H.div ! A.class_ "px-2" $ do
-      renderBreadcrumbs srcs spath
-      renderPandoc $
-        doc
-          & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
-          & rewriteLinks
-            -- Rewrite .md links to @MarkdownRoute@
-            ( \url -> fromMaybe url $ do
-                guard $ not $ "://" `T.isInfixOf` url
-                target <- mkMarkdownRoute $ toString url
-                -- Check that .md links are not broken
-                if modelMember target srcs
-                  then pure $ Ema.routeUrl target
-                  else throw $ BadRoute target
-            )
+    H.div ! A.class_ "px-2 grid grid-cols-12" $ do
+      H.div ! A.class_ "col-span-3 overflow-x-auto" $ do
+        renderSidebarNav srcs spath
+      H.div ! A.class_ "col-span-9" $ do
+        renderBreadcrumbs srcs spath
+        renderPandoc $
+          doc
+            & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
+            & rewriteLinks
+              -- Rewrite .md links to @MarkdownRoute@
+              ( \url -> fromMaybe url $ do
+                  guard $ not $ "://" `T.isInfixOf` url
+                  target <- mkMarkdownRoute $ toString url
+                  -- Check that .md links are not broken
+                  if modelMember target srcs
+                    then pure $ Ema.routeUrl target
+                    else throw $ BadRoute target
+              )
     H.footer ! A.class_ "mt-8 text-center text-gray-500" $ do
       "Powered by "
       H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
@@ -274,6 +311,22 @@ bodyHtml srcs spath doc = do
           ("last", "mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded"),
           ("next", "py-2 text-xl italic font-bold")
         ]
+
+renderSidebarNav :: Model -> MarkdownRoute -> H.Html
+renderSidebarNav model currentRoute = do
+  let (Node _rootSlug topLevels) = navTree
+  H.div ! A.class_ "pl-2 mt-8" $ renderRoute "" indexMarkdownRoute
+  go [] topLevels
+  where
+    go parSlugs xs =
+      H.div ! A.class_ "pl-2" $ do
+        forM_ xs $ \(Node slug children) -> do
+          let hereRoute :: MarkdownRoute = Tagged $ NE.reverse $ slug :| parSlugs
+          renderRoute (if null parSlugs || not (null children) then "font-bold" else "") hereRoute
+          go (parSlugs <> [slug]) children
+    renderRoute c r = do
+      let cls = if r == currentRoute then "text-pink-600" else ""
+      H.div ! A.class_ (cls <> " my-2 " <> c) $ H.a ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs srcs spath = do
@@ -291,20 +344,21 @@ renderBreadcrumbs srcs spath = do
             H.li ! A.class_ "inline-flex items-center text-gray-600" $ do
               H.a $ H.text $ lookupTitleForgiving srcs spath
   where
-    -- This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
-    -- title.
-    lookupTitleForgiving :: Model -> MarkdownRoute -> Text
-    lookupTitleForgiving srcs' spath' =
-      fromMaybe (markdownRouteFileBase spath') $ do
-        doc <- modelLookup spath' srcs'
-        is <- getPandocH1 doc
-        pure $ plainify is
     rightArrow =
       H.unsafeByteString $
         encodeUtf8
           [text|
           <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-auto text-gray-400"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
           |]
+
+-- | This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
+-- title.
+lookupTitleForgiving :: Model -> MarkdownRoute -> Text
+lookupTitleForgiving srcs' spath' =
+  fromMaybe (markdownRouteFileBase spath') $ do
+    doc <- modelLookup spath' srcs'
+    is <- getPandocH1 doc
+    pure $ plainify is
 
 -- ------------------------
 -- Pandoc transformer
