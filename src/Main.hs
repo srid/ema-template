@@ -201,7 +201,7 @@ headHtml spath doc = do
   favIcon
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
   H.link ! A.rel "manifest" ! A.href "/manifest.json"
-  H.meta ! A.name "theme-color" ! A.content "#d53f8c"
+  H.meta ! A.name "theme-color" ! A.content "#DB2777"
   unless (spath == indexMarkdownPath) prismJs
   where
     prismJs = do

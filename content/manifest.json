@@ -3,8 +3,8 @@
     "name": "Ema static site generator",
     "description": "Ema static site generator (Jamstack) in Haskell",
     "start_url": "/",
-    "background_color": "#d53f8c",
+    "background_color": "#DB2777",
     "display": "standalone",
     "scope": "/",
-    "theme_color": "#d53f8c"
+    "theme_color": "#DB2777"
 }

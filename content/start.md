@@ -1,16 +1,11 @@
 # Getting Started
 
-Ema is heavily a work in progress. Version 1.0 release is expected soon. If you wish to adopt it early for your projects, start from the WIP template repo [srid/ema-docs](https://github.com/srid/ema-docs). 
+The fastest way to get started with writing Ema app is as follows:
 
-The simplest Ema app looks like this:
-
-```haskell
-main :: IO ()
-main = do
-  let name :: Text = "Ema"
-  runEmaPure $ \_
-    encodeUtf8 $ "<b>Hello</b>, from " <> name
-```
+1. [Install Nix](https://nixos.org/download.html) (see [platform-specific notes here](https://neuron.zettel.page/install))
+1. [Enable Flakes](https://nixos.wiki/wiki/Flakes)
+1. Clone [the template repository](https://github.com/srid/ema-docs) locally
+1. Run `bin/run` and access the site at http://localhost:9001
 
 {.last}
-[Next]{.next}, we will [develop a basic site](start/tutorial.md) using Ema.
+[Next]{.next}, we will walk over how to [develop a basic site](start/tutorial.md) using Ema.
