@@ -343,7 +343,7 @@ rpBlock = \case
   B.BlockQuote bs ->
     H.blockquote $ mapM_ rpBlock bs
   B.OrderedList _ bss ->
-    H.ol ! A.class_ listStyle $
+    H.ol ! A.class_ (listStyle <> " list-decimal") $
       forM_ bss $ \bs ->
         H.li ! A.class_ listItemStyle $ mapM_ rpBlock bs
   B.BulletList bss ->

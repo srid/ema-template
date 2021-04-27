@@ -14,7 +14,7 @@ Here `BlogPosts` is the model type. If we are generating a weblog site, then all
 
 ## Modifying the model
 
-Ema's dev server supports [hot reload](concepts/hot-reload.md); it will observe changes to your model, in addition to code. To facilitate this you will manage your model as a [LVar](concepts/lvar.md). The `runEma` function takes an IO action that gets `LVar model` as an argument. 
+Ema's dev server supports [hot reload](concepts/hot-reload.md); it will observe changes to your model, in addition to code. To facilitate this you will manage your model as a [LVar](concepts/lvar.md). The `runEma` function ([described here](guide/class.md)) takes an IO action that gets `LVar model` as an argument. 
 
 For example,
 
@@ -27,9 +27,6 @@ runEma render $ \model ->
 
 In this contrived example ([full code here](https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Clock.hs)), we are using `UTCTime` as the model. We set the initial value using `LVar.set`, and then continually update the current time every second. Every time the model gets updated, the web browser will [hot reload](concepts/hot-reload.md) to display the up to date value. For the `BlogPosts` model, you would typically use [fsnotify](https://hackage.haskell.org/package/fsnotify) to monitor changes to the underlying Markdown files, but note that Ema provides [a helper](guide/filesystem.md) for that.
 
-## `runEma`
-
-`runEma` is the main function to call. It takes a `render` function that renders your HTML (we'll go over this in a [subsequent](guide/render.md) section), and the second argument is an IO action that takes `LVar model` as an argument. This IO action is expected to be a long-living one, wherein you have full control over setting the value of the model over time.
 
 {.last}
 [Next]{.next}, we will [talk about routes](guide/routes.md).

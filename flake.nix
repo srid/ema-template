@@ -23,23 +23,23 @@
             root = ./.;
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
-              ema = dontHaddock (inputs.ema.defaultPackage.${system});
+              ema = inputs.ema.defaultPackage.${system};
               lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;
               [
-                cabal-install
                 cabal-fmt
-                pkgs.nixpkgs-fmt
+                cabal-install
                 ghcid
-                ormolu
                 haskell-language-server
+                ormolu
+                pkgs.nixpkgs-fmt
               ]);
           };
       in
       {
-        # Used by `nix build`
+        # Used by `nix build` & `nix run`
         defaultPackage = project false;
 
         # Used by `nix develop`
