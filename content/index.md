@@ -23,29 +23,3 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
      a <a href="/ema-demo.mp4">link to the video</a> instead.</p>
 </video>
 :::
-
-## Features
-
-:::{.flex .flex-wrap .justify-evenly .items-center .bg-gray-100 .py-4 }
-
-:::{.feature}
-Hot Reload
-:::
-
-:::{.feature}
-Server Side Rendering
-:::
-
-:::{.feature}
-Haskell's Safety
-:::
-
-<!-- TODO: explain key differences from the like of Hakyll 
-- simpler routes system
-- bring your own templates
--->
-:::{.feature}
-Choose Your Own Libraries
-:::
-
-:::

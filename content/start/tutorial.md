@@ -81,7 +81,7 @@ render emaAction model r =
     routeElem r' w =
       H.a 
         ! A.class_ "text-red-500 hover:underline" 
-        ! A.href (fromString . toString $ Ema.routeUrl r') $ w
+        ! A.href (H.toValue $ Ema.routeUrl r') $ w
 ```
 
 If everything compiles, you should see the site update in the web browser. A couple of quick points about the `render` function:

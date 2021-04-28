@@ -23,7 +23,7 @@ render model route = Blaze.renderHtml $
           H.h1 "Welcome to my website!"
           H.p $ do 
             "Checkout the"
-            H.a ! A.href (Ema.routeUrl About) $ "About"
+            H.a ! A.href (H.toValue $ Ema.routeUrl About) $ "About"
             " page."
         About ->
           H.div $ H.p "This website is managed by yours truly"

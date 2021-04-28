@@ -7,7 +7,7 @@ As first steps, perform the following before proceeding to the tutorial section 
 1. Clone [the template repository](https://github.com/srid/ema-docs) locally
 1. Run `bin/run` and access the site at <http://localhost:9001>
 
-That should start the Ema dev server displaying a replica of ema.srid.ca. Go ahead and trying modifying either the Markdown content in `./content` or the Haskell source in `./src/Main.hs`, and observe how the web view updates [instantly](concepts/hot-reload.md).
+That should start the Ema dev server displaying a replica of ema.srid.ca. Go ahead and try modifying either the Markdown content in `./content` or the Haskell source in `./src/Main.hs`, and observe how the web view updates [instantly](concepts/hot-reload.md).
 
 {.last}
 [Next]{.next}, [in the tutorial](start/tutorial.md) let's try using this template repo to create a basic website.
