@@ -16,11 +16,11 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
 * [Concepts](concepts.md)
 :::
 
-:::{.flex .justify-center .items-center}
+:::{.flex .justify-center .items-center .mb-8}
 <video autoplay loop muted>
   <source src="/ema-demo.mp4" type="video/mp4">
   <p>Your browser doesn't support HTML5 video. Here is
-     a <a href="/ema-demo.webm">link to the video</a> instead.</p>
+     a <a href="/ema-demo.mp4">link to the video</a> instead.</p>
 </video>
 :::
 
