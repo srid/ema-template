@@ -283,37 +283,43 @@ headHtml r doc = do
         <link href="/ema.svg" rel="icon" />
         |]
 
+containerLayout :: H.Html -> H.Html -> H.Html
+containerLayout sidebar w = do
+  H.div ! A.class_ "px-2 grid grid-cols-12" $ do
+    H.div ! A.class_ "hidden mt-2 md:block md:col-span-3 md:sticky md:top-0 md:h-screen overflow-x-auto" $ do
+      sidebar
+    H.div ! A.class_ "col-span-12 md:col-span-9" $ do
+      w
+
 bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml model r doc = do
   H.div ! A.class_ "flex justify-center p-4 bg-pink-600 text-gray-100 font-bold text-2xl" $ do
     H.div $ do
-      H.b "WIP: "
-      "Documentation is nearly complete"
+      "Just announced: "
+      H.a ! A.class_ "underline" ! A.href "https://notes.srid.ca/ema-announce" $ "read the blog post"
+
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
-    H.div ! A.class_ "px-2 grid grid-cols-12" $ do
-      H.div ! A.class_ "hidden mt-2 md:block md:col-span-3 md:sticky md:top-0 md:h-screen overflow-x-auto" $ do
-        renderSidebarNav model r
-      H.div ! A.class_ "col-span-12 md:col-span-9" $ do
-        renderBreadcrumbs model r
-        renderPandoc $
-          doc
-            & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
-            & rewriteLinks
-              -- Rewrite .md links to @MarkdownRoute@
-              ( \url -> fromMaybe url $ do
-                  guard $ not $ "://" `T.isInfixOf` url
-                  target <- mkMarkdownRoute $ toString url
-                  -- Check that .md links are not broken
-                  if modelMember target model
-                    then pure $ Ema.routeUrl target
-                    else throw $ BadRoute target
-              )
-        H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
-          let editUrl = fromString $ "https://github.com/srid/ema-docs/edit/master/content/" <> markdownRouteSourcePath r
-          H.a ! A.href editUrl ! A.target "blank" ! A.rel "noopener" ! A.title "Edit this page on GitHub" $ editIcon
-          H.div $ do
-            "Powered by "
-            H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
+    containerLayout (renderSidebarNav model r) $ do
+      renderBreadcrumbs model r
+      renderPandoc $
+        doc
+          & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
+          & rewriteLinks
+            -- Rewrite .md links to @MarkdownRoute@
+            ( \url -> fromMaybe url $ do
+                guard $ not $ "://" `T.isInfixOf` url
+                target <- mkMarkdownRoute $ toString url
+                -- Check that .md links are not broken
+                if modelMember target model
+                  then pure $ Ema.routeUrl target
+                  else throw $ BadRoute target
+            )
+      H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
+        let editUrl = fromString $ "https://github.com/srid/ema-docs/edit/master/content/" <> markdownRouteSourcePath r
+        H.a ! A.href editUrl ! A.target "blank" ! A.rel "noopener" ! A.title "Edit this page on GitHub" $ editIcon
+        H.div $ do
+          "Powered by "
+          H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList

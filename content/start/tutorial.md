@@ -59,7 +59,7 @@ main = do
     liftIO $ threadDelay maxBound
 ```
 
-The `runEma` function is explained [here](guide/class.md), but in brief: it takes a render function (see below) as well as an IO action that allows us to create and update the model [lvar](concepts/lvar.md). Note that `threadDelay maxBound` here? That is because our IO action must not exist; in the dev server mode of real-world websites, you would continue to monitor the external world (such as Markdown files) and update the model, to facilitate [hot reload](concepts/hot-reload.md) of data used by your site.
+The `runEma` function is explained [here](guide/class.md), but in brief: it takes a render function (see below) as well as an IO action that allows us to create and update the model [lvar](concepts/lvar.md). Note that `threadDelay maxBound` here? That is because our IO action must not exit; in the dev server mode of real-world websites, you would continue to monitor the external world (such as Markdown files) and update the model, to facilitate [hot reload](concepts/hot-reload.md) of data used by your site.
 
 On final piece of the puzzle is to write the aforementioned `render` function:
 
