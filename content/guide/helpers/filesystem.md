@@ -12,11 +12,13 @@ runEma render $ \model -> do
     LVar.modify model $ applyAction action
 ```
 
-For monitoring local files on disk you would typically use something like [fsnotify](https://hackage.haskell.org/package/fsnotify) in place of `observeFileSystem`. What is the point of doing this? To support [hot reload](concepts/hot-reload.md) on _data_ change. Imagine that your static site is generated based on Markdown files as well as HTML templates on disk. If either the Markdown file, or a HTML templates changes, we want the web browser to hot reload instantly. This is enabled by storing both in the [model](guide/model.md) and using [LVar](concepts/lvar.md) to update it over time.
+For monitoring local files on disk you would typically use something like [fsnotify](https://hackage.haskell.org/package/fsnotify) in place of `observeFileSystem`. What is the point of doing this? To support [hot reload](concepts/hot-reload.md) on _data_ change. Imagine that your static site is generated based on Markdown files as well as HTML templates on disk. If either the Markdown file, or a HTML template file is modified, we want the web browser to hot reload the updated HTML *instantly*. This is enabled by storing both these kinds of files in the application [model](guide/model.md) and using [LVar](concepts/lvar.md) to update it *over time*.
 
 For filesystem changes, Ema provides a helper based on `fsnotify` in the `Ema.Helper.FileSystem` module. You can use it as follows
 
 ```haskell
+import qualified Ema.Helper.FileSystem as FileSystem
+
 type Model = Map FilePath Text
 
 Ema.runEma render $ \model -> do
