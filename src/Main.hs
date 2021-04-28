@@ -198,7 +198,7 @@ instance Ema Model MarkdownRoute where
 
   -- All static assets (relative to input directory) go here.
   staticAssets _ =
-    ["manifest.json", "ema.svg"]
+    ["manifest.json", "ema.svg", "ema-demo.mp4"]
 
 -- ------------------------
 -- Main entry point
@@ -437,8 +437,10 @@ rpBlock = \case
     -- Prism friendly classes
     let classes' = flip concatMap classes $ \cls -> [cls, "language-" <> cls]
      in H.div ! A.class_ "py-0.5" $ H.pre ! rpAttr (id', classes', attrs) $ H.code ! rpAttr ("", classes', []) $ H.text s
-  B.RawBlock _ _ ->
-    pure ()
+  B.RawBlock (B.Format fmt) html ->
+    if fmt == "html"
+      then H.unsafeByteString $ encodeUtf8 html
+      else throw Unsupported
   B.BlockQuote bs ->
     H.blockquote $ mapM_ rpBlock bs
   B.OrderedList _ bss ->
