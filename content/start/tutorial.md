@@ -98,6 +98,13 @@ If everything compiles, you should see the site update in the web browser. A cou
 1. It uses the [tailwind](guide/helpers/tailwind.md) helper, which in turn uses [blaze-html](https://hackage.haskell.org/package/blaze-html) as HTML DSL. You can use your own HTML templates or CSS library of course.
 1. It uses `Ema.routeUrl` function to create a URL out of our `Route` type. This function uses the `Ema` typeclass, so it uses the `encodeRoute` function defined further above.
 
+On final note, you will note that nothing is actually *generated* so far. This is because Ema has been running in the dev server mode, which is quite useful during development. To actually generate the files, you can use the `gen` command when running the [CLI](concepts/cli.md):
+
+```bash
+mkdir ./output
+nix run . -- -C ./content gen ./output
+```
+
 ## Exercises
 
 1. Figure out how to use static assets (images, files) in your static sites (hint: the typeclass)
