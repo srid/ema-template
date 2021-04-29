@@ -68,6 +68,7 @@ The `runEma` function is explained [here](guide/class.md), but in brief: it take
 On final piece of the puzzle is to write the aforementioned `render` function:
 
 ```haskell
+import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
