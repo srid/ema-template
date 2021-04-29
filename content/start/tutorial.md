@@ -39,6 +39,8 @@ data Model = Model { speaker :: Text }
 We should now tell Ema how to convert our `Route` to actual URL paths. Let's do that by making an instance of the `Ema` [class](guide/class.md):
 
 ```haskell
+import Ema (Ema (..))
+
 instance Ema Model Route where
   encodeRoute = \case
     Index -> []         -- To /
@@ -52,6 +54,8 @@ instance Ema Model Route where
 Now, we write the `main` entry point:
 
 ```haskell
+import qualified Data.LVar as LVar
+
 main :: IO ()
 main = do
   Ema.runEma render $ \model -> do
@@ -64,6 +68,10 @@ The `runEma` function is explained [here](guide/class.md), but in brief: it take
 On final piece of the puzzle is to write the aforementioned `render` function:
 
 ```haskell
+import Text.Blaze.Html5 ((!))
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
+
 render :: Ema.CLI.Action -> Model -> Route -> LByteString
 render emaAction model r =
   Tailwind.layout emaAction (H.title "Basic site") $
