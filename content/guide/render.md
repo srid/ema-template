@@ -38,4 +38,4 @@ Spend a few moments trying to appreciate how this is *much simpler* to write tha
 Of course when using Ema nothing prevents you from choosing to use traditional HTML templates, and you can get [hot reload](concepts/hot-reload.md) on them too with [a little bit of plumbing](guide/helpers/filesystem.md).
 
 {.last}
-[Next]{.next}, you might want to peruse [the helper topics](guide.md) in the parent section.
+[Next]{.next}, you might want to peruse [the helper topics](guide/helpers.md) in the parent section.
