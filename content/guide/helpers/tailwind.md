@@ -12,3 +12,5 @@ render emaAction model route = do
 ```
 
 The very site you are viewing (ema.srid.ca) is a live demonstration of this helper.
+
+**Note** that because the [JS shim](https://twind.dev/handbook/the-shim.html) is used to support Tailwind styles your site will not render properly on web browsers with JavaScript disabled.
