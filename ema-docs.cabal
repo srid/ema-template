@@ -32,7 +32,7 @@ executable ema-docs
     , containers
     , data-default
     , directory
-    , ema
+    , ema >= 0.2
     , filepath
     , lvar
     , monad-logger
