@@ -28,10 +28,10 @@ Ema.runEma render $ \model -&gt; do
         LVar.modify model $ Map.delete fp</code></pre></div><p class="my-2">In most cases, however, you probably want to use the higher level function <code>mountFileSystemOnLVar</code>. It “mounts” the files you specify onto the <a class="text-pink-600 font-bold hover:bg-pink-50" href="/concepts/lvar" title="">model LVar</a> such that any changes to them are <em>automatically</em> reflected in your <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/model" title="">model</a> value.</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">Ema.runEma render $ \model -&gt; do
   FileSystem.mountFileSystemOnLVar &quot;.&quot; [&quot;**/*.md&quot;] model $ \fp -&gt; \case
     FileSystem.Update -&gt; do
-      mData &lt;- readSource fp
-      pure $ maybe id (uncurry modelInsert) mData
+      s &lt;- readFileText fp
+      pure $ Map.insert fp s
     FileSystem.Delete -&gt;
-      pure $ maybe id modelDelete $ mkMarkdownRoute fp</code></pre></div><p class="my-2"></p><footer class="flex justify-center items-center space-x-4 my-8 text-center text-gray-500"><a href="https://github.com/srid/ema-docs/edit/master/content/guide/helpers/filesystem.md" target="blank" rel="noopener" title="Edit this page on GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      pure $ Map.delete fp</code></pre></div><p class="my-2"></p><footer class="flex justify-center items-center space-x-4 my-8 text-center text-gray-500"><a href="https://github.com/srid/ema-docs/edit/master/content/guide/helpers/filesystem.md" target="blank" rel="noopener" title="Edit this page on GitHub"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
   <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
   <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
 </svg></a><div>Powered by <a class="font-bold" target="blank" rel="noopener" href="https://github.com/srid/ema">Ema</a></div></footer></div></div></div></body></html>
