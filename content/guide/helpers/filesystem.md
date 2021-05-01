@@ -37,3 +37,15 @@ Ema.runEma render $ \model -> do
         log $ "Delete: " <> fp
         LVar.modify model $ Map.delete fp
 ```
+
+In most cases, however, you probably want to use the higher level function `mountFileSystemOnLVar`. It "mounts" the files you specify onto the [model LVar](concepts/lvar.md) such that any changes to them are *automatically* reflected in your [model](guide/model.md) value.
+
+```haskell
+Ema.runEma render $ \model -> do
+  FileSystem.mountFileSystemOnLVar "." ["**/*.md"] model $ \fp -> \case
+    FileSystem.Update -> do
+      mData <- readSource fp
+      pure $ maybe id (uncurry modelInsert) mData
+    FileSystem.Delete ->
+      pure $ maybe id modelDelete $ mkMarkdownRoute fp
+```

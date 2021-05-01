@@ -30,6 +30,7 @@ executable ema-docs
     , commonmark-extensions
     , commonmark-pandoc
     , containers
+    , data-default
     , directory
     , ema
     , filepath

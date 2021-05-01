@@ -18,6 +18,7 @@ import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
 import Control.Exception (throw)
 import Control.Monad.Logger
+import Data.Default
 import qualified Data.LVar as LVar
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
@@ -112,6 +113,9 @@ data Model = Model
   { modelDocs :: Map MarkdownRoute Pandoc
   }
   deriving (Eq, Show)
+
+instance Default Model where
+  def = Model mempty
 
 mkModel :: [(MarkdownRoute, Pandoc)] -> Model
 mkModel (Map.fromList -> docs) =
@@ -216,21 +220,19 @@ main =
   -- if `gen` argument is passed).  It is designed to work well with ghcid
   -- (which is what the bin/run script uses).
   Ema.runEma render $ \model -> do
-    -- This is the place where we can load and continue to modify our "model"
+    -- This is the place where we can load and continue to modify our "model".
+    -- You will use `LVar.set` and `LVar.modify` to modify the model.
+    --
     -- It is a run in a (long-running) thread of its own.
-    LVar.set model =<< do
-      mdFiles <- FileSystem.filesMatching "." ["**/*.md"]
-      forM mdFiles readSource
-        <&> mkModel . catMaybes
-    FileSystem.onChange "." $ \fp -> \case
-      FileSystem.Update ->
-        whenJustM (readSource fp) $ \(r, doc) -> do
-          log $ "Update: " <> show r
-          LVar.modify model $ modelInsert r doc
+    --
+    -- We use the FileSystem helper to directly "mount" our files on to the
+    -- LVar.
+    FileSystem.mountFileSystemOnLVar "." ["**/*.md"] model $ \fp -> \case
+      FileSystem.Update -> do
+        mData <- readSource fp
+        pure $ maybe id (uncurry modelInsert) mData
       FileSystem.Delete ->
-        whenJust (mkMarkdownRoute fp) $ \r -> do
-          log $ "Delete: " <> show r
-          LVar.modify model $ modelDelete r
+        pure $ maybe id modelDelete $ mkMarkdownRoute fp
   where
     readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, Pandoc))
     readSource fp =
