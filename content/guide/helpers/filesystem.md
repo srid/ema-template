@@ -44,8 +44,8 @@ In most cases, however, you probably want to use the higher level function `moun
 Ema.runEma render $ \model -> do
   FileSystem.mountFileSystemOnLVar "." ["**/*.md"] model $ \fp -> \case
     FileSystem.Update -> do
-      mData <- readSource fp
-      pure $ maybe id (uncurry modelInsert) mData
+      s <- readFileText fp
+      pure $ Map.insert fp s
     FileSystem.Delete ->
-      pure $ maybe id modelDelete $ mkMarkdownRoute fp
+      pure $ Map.delete fp
 ```
