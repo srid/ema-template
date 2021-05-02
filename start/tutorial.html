@@ -11,7 +11,8 @@ main = do
   Ema.runEmaPure $ \_ -&gt;
     encodeUtf8 $ &quot;&lt;b&gt;Hello&lt;/b&gt;, from &quot; &lt;&gt; speaker</code></pre></div><p class="my-2">This is the <em>minimum</em> amount of code necessary to run an Ema site. Notice that as you replace and save this file, your browser (which is at <a class="text-pink-600 hover:underline" href="http://locahost:9001" title="" target="_blank" rel="noopener">http://locahost:9001</a>) will <a class="text-pink-600 font-bold hover:bg-pink-50" href="/concepts/hot-reload" title="">hot reload</a> to display “Hello, Ema”. Congratulations, you just created your first website!</p><h2 class="text-5xl mt-4 mb-2 text-gray-700" id="expanding-on-hello-world">Expanding on Hello World</h2><p class="my-2">Okay, but that’s just <em>one</em> page. But we want to add a second page. And might as well add more content than “Hello, Ema”. Let’s do that next. The first step is define the <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/routes" title="">route</a> type that corresponds to our site’s pages. Add the following:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">data Route
   = Index  -- Corresponds to /
-  | About  -- Corresponds to /about</code></pre></div><p class="my-2">Next, let’s define a <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/model" title="">model</a>. A model will hold the state of our website used to render its HTML. Let’s put the <code>speaker</code> variable in it, as that’s all we are using:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">data Model = Model { speaker :: Text }</code></pre></div><p class="my-2">We should now tell Ema how to convert our <code>Route</code> to actual URL paths. Let’s do that by making an instance of the <code>Ema</code> <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/class" title="">class</a>:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">import Ema (Ema (..))
+  | About  -- Corresponds to /about
+  deriving (Bounded, Enum, Show)</code></pre></div><p class="my-2">Next, let’s define a <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/model" title="">model</a>. A model will hold the state of our website used to render its HTML. Let’s put the <code>speaker</code> variable in it, as that’s all we are using:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">data Model = Model { speaker :: Text }</code></pre></div><p class="my-2">We should now tell Ema how to convert our <code>Route</code> to actual URL paths. Let’s do that by making an instance of the <code>Ema</code> <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/class" title="">class</a>:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">import Ema (Ema (..))
 
 instance Ema Model Route where
   encodeRoute = \case
@@ -20,13 +21,15 @@ instance Ema Model Route where
   decodeRoute = \case
     [] -&gt; Just Index         -- From /
     [&quot;about&quot;] -&gt; Just About  -- From /about
-    _ -&gt; Nothing             -- Everything else, are bad routes</code></pre></div><p class="my-2">Now, we write the <code>main</code> entry point:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">import qualified Data.LVar as LVar
+    _ -&gt; Nothing             -- Everything else, are bad routes</code></pre></div><p class="my-2">Now, we write the <code>main</code> entry point:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">import Control.Concurrent (threadDelay)
+import qualified Data.LVar as LVar
 
 main :: IO ()
 main = do
   Ema.runEma render $ \model -&gt; do
     LVar.set model $ Model &quot;Ema&quot;
-    liftIO $ threadDelay maxBound</code></pre></div><p class="my-2">The <code>runEma</code> function is explained <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/class" title="">here</a>, but in brief: it takes a render function (see below) as well as an IO action that allows us to create and update the model <a class="text-pink-600 font-bold hover:bg-pink-50" href="/concepts/lvar" title="">lvar</a>. Note that <code>threadDelay maxBound</code> here? That is because our IO action must not exit; in the dev server mode of real-world websites, you would continue to monitor the external world (such as Markdown files) and update the model, to facilitate <a class="text-pink-600 font-bold hover:bg-pink-50" href="/concepts/hot-reload" title="">hot reload</a> of data used by your site.</p><p class="my-2">On final piece of the puzzle is to write the aforementioned <code>render</code> function:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">import qualified Ema.Helper.Tailwind as Tailwind
+    liftIO $ threadDelay maxBound</code></pre></div><p class="my-2">The <code>runEma</code> function is explained <a class="text-pink-600 font-bold hover:bg-pink-50" href="/guide/class" title="">here</a>, but in brief: it takes a render function (see below) as well as an IO action that allows us to create and update the model <a class="text-pink-600 font-bold hover:bg-pink-50" href="/concepts/lvar" title="">lvar</a>. Note that <code>threadDelay maxBound</code> here? That is because our IO action must not exit; in the dev server mode of real-world websites, you would continue to monitor the external world (such as Markdown files) and update the model, to facilitate <a class="text-pink-600 font-bold hover:bg-pink-50" href="/concepts/hot-reload" title="">hot reload</a> of data used by your site.</p><p class="my-2">On final piece of the puzzle is to write the aforementioned <code>render</code> function:</p><div class="py-0.5"><pre class="haskell language-haskell"><code class="haskell language-haskell">import qualified Ema.CLI
+import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -38,8 +41,8 @@ render emaAction model r =
       H.div ! A.class_ &quot;mt-8 p-2 text-center&quot; $ do
         case r of
           Index -&gt; do
-            H.toHtml s
-            &quot;You are on the index page. The name is &quot; &lt;&gt; speaker model
+            H.toHtml $
+              &quot;You are on the index page. The name is &quot; &lt;&gt; speaker model
             routeElem About &quot;Go to About&quot;
           About -&gt; do
             &quot;You are on the about page. &quot;
