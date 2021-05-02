@@ -28,6 +28,7 @@ Okay, but that's just *one* page. But we want to add a second page. And might as
 data Route
   = Index  -- Corresponds to /
   | About  -- Corresponds to /about
+  deriving (Bounded, Enum, Show)
 ```
 
 Next, let's define a [model](guide/model.md). A model will hold the state of our website used to render its HTML. Let's put the `speaker` variable in it, as that's all we are using:
@@ -54,6 +55,7 @@ instance Ema Model Route where
 Now, we write the `main` entry point:
 
 ```haskell
+import Control.Concurrent (threadDelay)
 import qualified Data.LVar as LVar
 
 main :: IO ()
@@ -68,6 +70,7 @@ The `runEma` function is explained [here](guide/class.md), but in brief: it take
 On final piece of the puzzle is to write the aforementioned `render` function:
 
 ```haskell
+import qualified Ema.CLI
 import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -80,8 +83,8 @@ render emaAction model r =
       H.div ! A.class_ "mt-8 p-2 text-center" $ do
         case r of
           Index -> do
-            H.toHtml s
-            "You are on the index page. The name is " <> speaker model
+            H.toHtml $
+              "You are on the index page. The name is " <> speaker model
             routeElem About "Go to About"
           About -> do
             "You are on the about page. "
