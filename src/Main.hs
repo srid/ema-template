@@ -125,8 +125,7 @@ mkModel (Map.fromList -> docs) =
 
 -- | Hardcoded nav tree.
 --
--- TODO: Build it automatically from model. Requires defining sort order of
--- children somewhere (yaml?)
+-- TODO: https://github.com/srid/ema/issues/22
 navTree :: Tree Slug
 navTree =
   Node
@@ -297,8 +296,8 @@ bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml model r doc = do
   H.div ! A.class_ "flex justify-center p-4 bg-pink-600 text-gray-100 font-bold text-2xl" $ do
     H.div $ do
-      "Just announced: "
-      H.a ! A.class_ "underline" ! A.href "https://notes.srid.ca/ema-announce" $ "read the blog post"
+      "We support "
+      H.a ! A.class_ "underline" ! targetBlank ! A.href "https://www.fairforall.org/about/" $ "FAIR"
 
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     containerLayout (renderSidebarNav model r) $ do
@@ -318,10 +317,10 @@ bodyHtml model r doc = do
             )
       H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
         let editUrl = fromString $ "https://github.com/srid/ema-docs/edit/master/content/" <> markdownRouteSourcePath r
-        H.a ! A.href editUrl ! A.target "blank" ! A.rel "noopener" ! A.title "Edit this page on GitHub" $ editIcon
+        H.a ! A.href editUrl ! A.title "Edit this page on GitHub" $ editIcon
         H.div $ do
           "Powered by "
-          H.a ! A.class_ "font-bold" ! A.target "blank" ! A.rel "noopener" ! A.href "https://github.com/srid/ema" $ "Ema"
+          H.a ! A.class_ "font-bold" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
     emaMarkdownStyleLibrary =
       Map.fromList
@@ -521,7 +520,7 @@ rpInline = \case
   B.Link attr is (url, title) -> do
     let (cls, target) =
           if "://" `T.isInfixOf` url
-            then ("text-pink-600 hover:underline", A.target "_blank" <> A.rel "noopener")
+            then ("text-pink-600 hover:underline", targetBlank)
             else ("text-pink-600 font-bold hover:bg-pink-50", mempty)
     H.a
       ! A.class_ cls
@@ -543,6 +542,10 @@ rpInline = \case
     inQuotes w = \case
       B.SingleQuote -> "‘" >> w <* "’"
       B.DoubleQuote -> "“" >> w <* "”"
+
+targetBlank :: H.Attribute
+targetBlank =
+  A.target "_blank" <> A.rel "noopener"
 
 rpAttr :: B.Attr -> H.Attribute
 rpAttr (id', classes, attrs) =
