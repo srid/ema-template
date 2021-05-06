@@ -1,3 +1,6 @@
+---
+order: 2
+---
 # Working with routes
 
 Ema gives you the freedom to use any Haskell type for representing your site routes. You don't need complicated rewrite rules. Routes are best represented using what are known as *sum  types* (or ADT, short for *Abstract Data Type*). Here's an example of a route type:

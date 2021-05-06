@@ -1,3 +1,6 @@
+---
+order: 3
+---
 # Defining Ema instance
 
 Once you have [model](guide/model.md) and [route](guide/routes.md) types in place, we must tell the Haskell compiler that they are suitable for generating static sites. We do this by creating an instance of the `Ema` typeclass.

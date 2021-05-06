@@ -1,3 +1,6 @@
+---
+order: 1
+---
 # Using Tailwind CSS
 
 The `Ema.Helper.Tailwind` module provides a `layout` function that uses [twind](https://twind.dev/) shim that is used in the statically generated site, and otherwise uses Tailwind CSS from CDN in the dev server mode. This helper is for those that **use [Tailwind CSS](https://tailwindcss.com/) in conjunction with [blaze-html](https://hackage.haskell.org/package/blaze-html) DSL**.

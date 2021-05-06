@@ -26,14 +26,12 @@ executable ema-docs
     , base
     , blaze-html
     , blaze-markup
-    , commonmark
-    , commonmark-extensions
-    , commonmark-pandoc
     , containers
     , data-default
     , directory
-    , ema >= 0.2
+    , ema                 >=0.2
     , filepath
+    , HsYAML
     , lvar
     , monad-logger
     , neat-interpolation

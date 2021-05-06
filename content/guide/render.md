@@ -1,3 +1,6 @@
+---
+order: 4
+---
 # Rendering HTML
 
 Once you have [model](guide/model.md) and [routes](guide/routes.md) in place and [constrained](guide/class.md), the last piece of the puzzle is to write a function that takes both as arguments and returns the HTML string (lazy bytestring, to be exact). This function can be as simple as the following:

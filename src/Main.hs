@@ -1,5 +1,3 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
@@ -13,21 +11,22 @@
 --   https://github.com/srid/www.srid.ca/blob/master/src/Main.hs
 module Main where
 
-import qualified Commonmark as CM
-import qualified Commonmark.Extensions as CE
-import qualified Commonmark.Pandoc as CP
 import Control.Exception (throw)
 import Control.Monad.Logger
-import Data.Default
+import Data.Default (Default (..))
+import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
 import qualified Data.Text as T
 import Data.Tree (Tree (Node))
+import qualified Data.Tree as Tree
+import qualified Data.YAML as Y
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
+import qualified Ema.Helper.Markdown as Markdown
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
 import System.FilePath (splitExtension, splitPath)
@@ -109,63 +108,59 @@ markdownRouteInits (MarkdownRoute (slug :| rest')) =
 --
 -- It contains the list of all markdown files, parsed as Pandoc AST.
 data Model = Model
-  { modelDocs :: Map MarkdownRoute Pandoc
+  { modelDocs :: Map MarkdownRoute (Meta, Pandoc),
+    modelNav :: [Tree Slug]
   }
   deriving (Eq, Show)
 
 instance Default Model where
-  def = Model mempty
+  def = Model mempty mempty
 
--- | Hardcoded nav tree.
---
--- TODO: https://github.com/srid/ema/issues/22
-navTree :: Tree Slug
-navTree =
-  Node
-    "index"
-    [ Node
-        "start"
-        [ Node "tutorial" mempty
-        ],
-      Node
-        "guide"
-        [ Node "model" mempty,
-          Node "routes" mempty,
-          Node "class" mempty,
-          Node "render" mempty,
-          Node
-            "helpers"
-            [ -- Helpers
-              Node "tailwind" mempty,
-              Node "filesystem" mempty,
-              Node "markdown" mempty
-            ]
-        ],
-      Node
-        "concepts"
-        [ Node "hot-reload" mempty,
-          Node "lvar" mempty,
-          Node "slug" mempty,
-          Node "cli" mempty,
-          Node "logging" mempty
-        ]
-    ]
+data Meta = Meta
+  { -- | Indicates the order of the Markdown file in sidebar tree, relative to
+    -- its siblings.
+    order :: Word
+  }
+  deriving (Eq, Show)
+
+instance Y.FromYAML Meta where
+  parseYAML = Y.withMap "FrontMatter" $ \m ->
+    Meta
+      <$> m Y..: "order"
+
+instance Default Meta where
+  def = Meta maxBound
 
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
-  Map.lookup k . modelDocs
+  fmap snd . Map.lookup k . modelDocs
+
+modelLookupMeta :: MarkdownRoute -> Model -> Meta
+modelLookupMeta k =
+  maybe def fst . Map.lookup k . modelDocs
 
 modelMember :: MarkdownRoute -> Model -> Bool
 modelMember k =
   Map.member k . modelDocs
 
-modelInsert :: MarkdownRoute -> Pandoc -> Model -> Model
+modelInsert :: MarkdownRoute -> (Meta, Pandoc) -> Model -> Model
 modelInsert k v model =
-  model {modelDocs = Map.insert k v (modelDocs model)}
+  let modelDocs' = Map.insert k v (modelDocs model)
+   in model
+        { modelDocs = modelDocs',
+          modelNav =
+            treeInsertPathMaintainingOrder
+              (\k' -> order $ maybe def fst $ Map.lookup (MarkdownRoute k') modelDocs')
+              (unMarkdownRoute k)
+              (modelNav model)
+        }
 
 modelDelete :: MarkdownRoute -> Model -> Model
 modelDelete k model =
-  model {modelDocs = Map.delete k (modelDocs model)}
+  model
+    { modelDocs = Map.delete k (modelDocs model),
+      modelNav = treeDeletePath (unMarkdownRoute k) (modelNav model)
+    }
 
 -- | Once we have a "model" and "route" (as defined above), we should define the
 -- @Ema@ typeclass to tell Ema how to decode/encode our routes, as well as the
@@ -226,13 +221,16 @@ main =
       FileSystem.Delete ->
         pure $ maybe id modelDelete $ mkMarkdownRoute fp
   where
-    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, Pandoc))
+    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
     readSource fp =
       runMaybeT $ do
         r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText fp
-        pure (r, parseMarkdown s)
+        pure (r, either (throw . BadMarkdown) (first $ fromMaybe def) $ Markdown.parseMarkdownWithFrontMatter @Meta fp s)
+
+newtype BadMarkdown = BadMarkdown Text
+  deriving (Show, Exception)
 
 -- ------------------------
 -- Our site HTML
@@ -256,7 +254,7 @@ headHtml r doc = do
       if r == indexMarkdownRoute
         then "Ema – next-gen Haskell static site generator"
         else
-          let routeTitle = maybe (Ema.unSlug $ last $ unMarkdownRoute r) plainify $ getPandocH1 doc
+          let routeTitle = maybe (Ema.unSlug $ last $ unMarkdownRoute r) Markdown.plainify $ getPandocH1 doc
            in routeTitle <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
@@ -337,9 +335,10 @@ bodyHtml model r doc = do
 
 renderSidebarNav :: Model -> MarkdownRoute -> H.Html
 renderSidebarNav model currentRoute = do
-  let (Node _rootSlug topLevels) = navTree
   H.div ! A.class_ "pl-2 font-bold" $ renderRoute "" indexMarkdownRoute
-  go [] topLevels
+  -- Drop toplevel index.md from sidebar tree (because we are linking to it manually)
+  let navTree = treeDeleteChild "index" $ modelNav model
+  go [] navTree
   where
     go parSlugs xs =
       H.div ! A.class_ "pl-2" $ do
@@ -381,7 +380,7 @@ lookupTitleForgiving model r =
   fromMaybe (markdownRouteFileBase r) $ do
     doc <- modelLookup r model
     is <- getPandocH1 doc
-    pure $ plainify is
+    pure $ Markdown.plainify is
 
 -- ------------------------
 -- Pandoc transformer
@@ -523,7 +522,7 @@ rpInline = \case
       ! rpAttr attr
       $ mapM_ rpInline is
   B.Image attr is (url, title) ->
-    H.img ! A.src (H.textValue url) ! A.title (H.textValue title) ! A.alt (H.textValue $ plainify is) ! rpAttr attr
+    H.img ! A.src (H.textValue url) ! A.title (H.textValue title) ! A.alt (H.textValue $ Markdown.plainify is) ! rpAttr attr
   B.Note _ ->
     throw Unsupported
   B.Span attr is ->
@@ -567,73 +566,58 @@ getPandocH1 = listToMaybe . W.query go
       _ ->
         []
 
--- | Convert Pandoc AST inlines to raw text.
-plainify :: [B.Inline] -> Text
-plainify = W.query $ \case
-  B.Str x -> x
-  B.Code _attr x -> x
-  B.Space -> " "
-  B.SoftBreak -> " "
-  B.LineBreak -> " "
-  B.RawInline _fmt s -> s
-  B.Math _mathTyp s -> s
-  -- Ignore the rest of AST nodes, as they are recursively defined in terms of
-  -- `Inline` which `W.query` will traverse again.
-  _ -> ""
+-- -------------------
+-- Data.Tree helpers
+-- -------------------
 
--- ------------------------
--- Markdown parsing helpers
--- ------------------------
+treeInsertPath :: Eq a => NonEmpty a -> [Tree a] -> [Tree a]
+treeInsertPath =
+  treeInsertPathMaintainingOrder void
 
-newtype BadMarkdown = BadMarkdown Text
-  deriving (Show, Exception)
+-- | Insert a node by path into a tree with descendants that are ordered.
+--
+-- Insertion will guarantee that descendants continue to be ordered as expected.
+--
+-- The order of descendents is determined by the given order function, which
+-- takes the path to a node and return that node's order. The intention is to
+-- lookup the actual order value which exists *outside* of the tree
+-- datastructure itself.
+treeInsertPathMaintainingOrder :: (Eq a, Ord ord) => (NonEmpty a -> ord) -> NonEmpty a -> [Tree a] -> [Tree a]
+treeInsertPathMaintainingOrder ordF path t =
+  orderedTreeInsertPath ordF (toList path) t []
+  where
+    orderedTreeInsertPath :: (Eq a, Ord b) => (NonEmpty a -> b) -> [a] -> [Tree a] -> [a] -> [Tree a]
+    orderedTreeInsertPath _ [] trees _ =
+      trees
+    orderedTreeInsertPath pathOrder (top : rest) trees ancestors =
+      case treeFindChild top trees of
+        Nothing ->
+          let newChild = Node top $ orderedTreeInsertPath pathOrder rest [] (top : ancestors)
+           in sortChildrenOn pathOrder (trees <> one newChild)
+        Just (Node _match grandChildren) ->
+          let oneDead = treeDeleteChild top trees
+              newChild = Node top $ orderedTreeInsertPath pathOrder rest grandChildren (top : ancestors)
+           in sortChildrenOn pathOrder (oneDead <> one newChild)
+      where
+        treeFindChild x xs =
+          List.find (\n -> Tree.rootLabel n == x) xs
+        sortChildrenOn f =
+          sortOn $ (\s -> f $ NE.reverse $ s :| ancestors) . Tree.rootLabel
 
-parseMarkdown :: Text -> Pandoc
-parseMarkdown s =
-  Pandoc mempty $
-    B.toList $
-      CP.unCm @() @B.Blocks $
-        either (throw . BadMarkdown . show) id $
-          join $ CM.commonmarkWith @(Either CM.ParseError) markdownSpec "x" s
+treeDeletePath :: Eq a => NonEmpty a -> [Tree a] -> [Tree a]
+treeDeletePath slugs =
+  go (toList slugs)
+  where
+    go :: Eq a => [a] -> [Tree a] -> [Tree a]
+    go [] t = t
+    go [p] t =
+      List.deleteBy (\x y -> Tree.rootLabel x == Tree.rootLabel y) (Node p []) t
+    go (p : ps) t =
+      t <&> \node@(Node x xs) ->
+        if x == p
+          then Node x $ go ps xs
+          else node
 
-type SyntaxSpec' m il bl =
-  ( Monad m,
-    CM.IsBlock il bl,
-    CM.IsInline il,
-    Typeable m,
-    Typeable il,
-    Typeable bl,
-    CE.HasEmoji il,
-    CE.HasStrikethrough il,
-    CE.HasPipeTable il bl,
-    CE.HasTaskList il bl,
-    CM.ToPlainText il,
-    CE.HasFootnote il bl,
-    CE.HasMath il,
-    CE.HasDefinitionList il bl,
-    CE.HasDiv bl,
-    CE.HasQuoted il,
-    CE.HasSpan il
-  )
-
-markdownSpec ::
-  SyntaxSpec' m il bl =>
-  CM.SyntaxSpec m il bl
-markdownSpec =
-  mconcat
-    [ CE.gfmExtensions,
-      CE.fancyListSpec,
-      CE.footnoteSpec,
-      CE.mathSpec,
-      CE.smartPunctuationSpec,
-      CE.definitionListSpec,
-      CE.attributesSpec,
-      CE.rawAttributeSpec,
-      CE.fencedDivSpec,
-      CE.bracketedSpanSpec,
-      CE.autolinkSpec,
-      CM.defaultSyntaxSpec,
-      -- as the commonmark documentation states, pipeTableSpec should be placed after
-      -- fancyListSpec and defaultSyntaxSpec to avoid bad results when non-table lines
-      CE.pipeTableSpec
-    ]
+treeDeleteChild :: Eq a => a -> [Tree a] -> [Tree a]
+treeDeleteChild x =
+  List.deleteBy (\p q -> Tree.rootLabel p == Tree.rootLabel q) (Node x [])

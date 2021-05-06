@@ -1,3 +1,6 @@
+---
+order: 1
+---
 # Defining your model
 
 A "*model*" in Ema represents the state to use to generate your site. It could be as simple as a variable, or it could be a list of parsed Markdown files (as in the case of a weblog). Ema's model is also conceptually similar to [Elm](https://guide.elm-lang.org/architecture/)'s model, in that - changing the model [automatically](concepts/hot-reload.md) changes the [view](guide/render.md).

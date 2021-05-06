@@ -1,3 +1,6 @@
+---
+order: 4
+---
 # CLI
 
 Ema apps have a basic CLI argument structure that takes two kinds of input:

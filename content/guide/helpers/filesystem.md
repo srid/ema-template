@@ -1,3 +1,6 @@
+---
+order: 2
+---
 # Working with files
 
 If your static site is generated depending on local files on disk, the general flow of things is as follows:
