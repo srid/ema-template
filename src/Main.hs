@@ -19,7 +19,6 @@ import qualified Commonmark.Pandoc as CP
 import Control.Exception (throw)
 import Control.Monad.Logger
 import Data.Default
-import qualified Data.LVar as LVar
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
@@ -116,12 +115,6 @@ data Model = Model
 
 instance Default Model where
   def = Model mempty
-
-mkModel :: [(MarkdownRoute, Pandoc)] -> Model
-mkModel (Map.fromList -> docs) =
-  Model
-    { modelDocs = docs
-    }
 
 -- | Hardcoded nav tree.
 --
@@ -226,7 +219,7 @@ main =
     --
     -- We use the FileSystem helper to directly "mount" our files on to the
     -- LVar.
-    FileSystem.mountFileSystemOnLVar "." ["**/*.md"] model $ \fp -> \case
+    FileSystem.mountOnLVar "." ["**/*.md"] model $ \fp -> \case
       FileSystem.Update -> do
         mData <- readSource fp
         pure $ maybe id (uncurry modelInsert) mData
