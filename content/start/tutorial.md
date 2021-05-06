@@ -75,12 +75,15 @@ import qualified Ema.Helper.Tailwind as Tailwind
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
+import qualified Text.Blaze.Html.Renderer.Utf8 as RU
 
 render :: Ema.CLI.Action -> Model -> Route -> LByteString
-render emaAction model r =
-  Tailwind.layout emaAction (H.title "Basic site") $
-    H.div ! A.class_ "container mx-auto" $ do
-      H.div ! A.class_ "mt-8 p-2 text-center" $ do
+render _emaAction model r = RU.renderHtml $
+  H.html $ do
+    H.head $ do 
+      H.title "Basic site"
+    H.body $ do
+      H.div ! A.class_ "container" $ do
         case r of
           Index -> do
             H.toHtml $
@@ -90,16 +93,16 @@ render emaAction model r =
             "You are on the about page. "
             routeElem Index "Go to Index"
   where
-    routeElem r' w =
+    routeElem targetRoute w =
       H.a 
-        ! A.class_ "text-red-500 hover:underline" 
-        ! A.href (H.toValue $ Ema.routeUrl r') $ w
+        ! A.style "text-decoration: underline" 
+        ! A.href (H.toValue $ Ema.routeUrl targetRoute) $ w
 ```
 
 If everything compiles, you should see the site update in the web browser. A couple of quick points about the `render` function:
 
-1. It uses the [tailwind](guide/helpers/tailwind.md) helper, which in turn uses [blaze-html](https://hackage.haskell.org/package/blaze-html) as HTML DSL. You can use your own HTML templates or CSS library of course.
-1. It uses `Ema.routeUrl` function to create a URL out of our `Route` type. This function uses the `Ema` typeclass, so it uses the `encodeRoute` function defined further above.
+1. It should return the raw HTML as a `ByteString`. Here, we use [blaze-html](https://hackage.haskell.org/package/blaze-html) as HTML DSL. You can also use your own HTML templates of course.
+1. It uses `Ema.routeUrl` function to create a URL out of our `Route` type. This function uses the [`Ema` typeclass](guide/class.md), so it uses the `encodeRoute` function defined further above.
 
 On final note, you will note that nothing is actually *generated* so far. This is because Ema has been running in the dev server mode, which is quite useful during development. To actually generate the files, you can use the `gen` command when running the [CLI](concepts/cli.md):
 
