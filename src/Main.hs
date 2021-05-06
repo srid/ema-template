@@ -137,8 +137,6 @@ slugTreeInsertPath :: Ord ord => (NonEmpty Slug -> ord) -> NonEmpty Slug -> Tree
 slugTreeInsertPath _ ((Ema.unSlug -> "index") :| []) t =
   -- "index" is the tree root; nothing to do.
   t
-slugTreeInsertPath _ ((Ema.unSlug -> "index") :| _rest) _t =
-  error "Paths of form index/foo are unrecognized"
 slugTreeInsertPath getOrder a b =
   go (toList a) b []
   where
@@ -163,8 +161,6 @@ slugTreeInsertPath getOrder a b =
 slugTreeDeletePath :: NonEmpty Slug -> Tree Slug -> Tree Slug
 slugTreeDeletePath ((Ema.unSlug -> "index") :| []) _t =
   error "index.md should not be removed"
-slugTreeDeletePath ((Ema.unSlug -> "index") :| _rest) _t =
-  error "Paths of form index/foo are unrecognized"
 slugTreeDeletePath slugs (Node index subs) =
   Node index $ treeDeleteByPath (toList slugs) subs
   where
