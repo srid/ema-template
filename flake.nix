@@ -24,7 +24,7 @@
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
               ema = disableCabalFlag inputs.ema.defaultPackage.${system} "with-examples";
-              lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
+              # lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv (with pkgs.haskellPackages;
