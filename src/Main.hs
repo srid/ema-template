@@ -109,14 +109,12 @@ markdownRouteInits (MarkdownRoute (slug :| rest')) =
 -- It contains the list of all markdown files, parsed as Pandoc AST.
 data Model = Model
   { modelDocs :: Map MarkdownRoute (Meta, Pandoc),
-    modelNav :: Tree Slug
+    modelNav :: [Tree Slug]
   }
   deriving (Eq, Show)
 
 instance Default Model where
-  def = Model mempty singletonNav
-    where
-      singletonNav = Node "index" mempty
+  def = Model mempty mempty
 
 data Meta = Meta
   { -- | Indicates the order of the Markdown file in sidebar tree, relative to
@@ -133,36 +131,17 @@ instance Y.FromYAML Meta where
 instance Default Meta where
   def = Meta maxBound
 
-slugTreeInsertPath :: Ord ord => (NonEmpty Slug -> ord) -> NonEmpty Slug -> Tree Slug -> Tree Slug
-slugTreeInsertPath _ ((Ema.unSlug -> "index") :| []) t =
-  -- "index" is the tree root; nothing to do.
-  t
-slugTreeInsertPath getOrder a b =
-  go (toList a) b []
-  where
-    go slugs (Node slug children) ancestors =
-      let sortChildren = sortOn $ (\s -> getOrder $ NE.reverse $ s :| ancestors) . Tree.rootLabel
-       in case slugs of
-            [] -> Node slug children
-            (top : rest) ->
-              case findChild top children of
-                Nothing ->
-                  let newChild = go rest (Node top []) (slug : ancestors)
-                   in Node slug $ sortChildren (children <> one newChild)
-                Just (Node _match grandChildren) ->
-                  let oneDead = deleteChild top children
-                      newChild = go rest (Node top grandChildren) (slug : ancestors)
-                   in Node slug $ sortChildren (oneDead <> one newChild)
-    findChild x xs =
-      List.find (\n -> Tree.rootLabel n == x) xs
-    deleteChild x xs =
-      List.deleteBy (\p q -> Tree.rootLabel p == Tree.rootLabel q) (Node x []) xs
+slugTreeInsertPathMaintainingOrder :: Ord ord => (NonEmpty Slug -> ord) -> NonEmpty Slug -> [Tree Slug] -> [Tree Slug]
+slugTreeInsertPathMaintainingOrder pathOrder path t =
+  orderedTreeInsertPath pathOrder (toList path) t []
 
-slugTreeDeletePath :: NonEmpty Slug -> Tree Slug -> Tree Slug
-slugTreeDeletePath ((Ema.unSlug -> "index") :| []) _t =
-  error "index.md should not be removed"
-slugTreeDeletePath slugs (Node index subs) =
-  Node index $ treeDeleteByPath (toList slugs) subs
+slugTreeInsertPath :: NonEmpty Slug -> [Tree Slug] -> [Tree Slug]
+slugTreeInsertPath =
+  slugTreeInsertPathMaintainingOrder void
+
+slugTreeDeletePath :: NonEmpty Slug -> [Tree Slug] -> [Tree Slug]
+slugTreeDeletePath slugs =
+  treeDeleteByPath (toList slugs)
   where
     treeDeleteByPath :: Eq a => [a] -> [Tree a] -> [Tree a]
     treeDeleteByPath [] t = t
@@ -173,6 +152,36 @@ slugTreeDeletePath slugs (Node index subs) =
         if x == p
           then Node x $ treeDeleteByPath ps xs
           else node
+
+-- | Insert a node by path into a tree with descendants that are ordered.
+--
+-- Insertion will guarantee that descendants continue to be ordered as expected.
+--
+-- The order of descendents is determined by the given order function, which
+-- takes the path to a node and return that node's order. The intention is to
+-- lookup the actual order value which exists *outside* of the tree
+-- datastructure itself.
+orderedTreeInsertPath :: (Eq a, Ord b) => (NonEmpty a -> b) -> [a] -> [Tree a] -> [a] -> [Tree a]
+orderedTreeInsertPath _ [] trees _ =
+  trees
+orderedTreeInsertPath pathOrder (top : rest) trees ancestors =
+  case treeFindChild top trees of
+    Nothing ->
+      let newChild = Node top $ orderedTreeInsertPath pathOrder rest [] (top : ancestors)
+       in sortChildrenOn pathOrder (trees <> one newChild)
+    Just (Node _match grandChildren) ->
+      let oneDead = treeDeleteChild top trees
+          newChild = Node top $ orderedTreeInsertPath pathOrder rest grandChildren (top : ancestors)
+       in sortChildrenOn pathOrder (oneDead <> one newChild)
+  where
+    treeFindChild x xs =
+      List.find (\n -> Tree.rootLabel n == x) xs
+    sortChildrenOn f =
+      sortOn $ (\s -> f $ NE.reverse $ s :| ancestors) . Tree.rootLabel
+
+treeDeleteChild :: Eq a => a -> [Tree a] -> [Tree a]
+treeDeleteChild x =
+  List.deleteBy (\p q -> Tree.rootLabel p == Tree.rootLabel q) (Node x [])
 
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
@@ -192,7 +201,7 @@ modelInsert k v model =
    in model
         { modelDocs = modelDocs',
           modelNav =
-            slugTreeInsertPath
+            slugTreeInsertPathMaintainingOrder
               (\k' -> order $ maybe def fst $ Map.lookup (MarkdownRoute k') modelDocs')
               (unMarkdownRoute k)
               (modelNav model)
@@ -378,9 +387,10 @@ bodyHtml model r doc = do
 
 renderSidebarNav :: Model -> MarkdownRoute -> H.Html
 renderSidebarNav model currentRoute = do
-  let (Node _rootSlug topLevels) = modelNav model
   H.div ! A.class_ "pl-2 font-bold" $ renderRoute "" indexMarkdownRoute
-  go [] topLevels
+  -- Drop toplevel index.md from sidebar tree (because we are linking to it manually)
+  let navTree = treeDeleteChild "index" $ modelNav model
+  go [] navTree
   where
     go parSlugs xs =
       H.div ! A.class_ "pl-2" $ do
