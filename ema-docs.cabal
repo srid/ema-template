@@ -43,6 +43,9 @@ executable ema-docs
     , shower
     , tagged
     , text
+    , megaparsec
+    , parser-combinators
+    , HsYAML
     , time
     , unliftio
 

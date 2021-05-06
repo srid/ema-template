@@ -17,23 +17,31 @@ import qualified Commonmark as CM
 import qualified Commonmark.Extensions as CE
 import qualified Commonmark.Pandoc as CP
 import Control.Exception (throw)
+import Control.Monad.Combinators (manyTill)
 import Control.Monad.Logger
-import Data.Default
+import Data.Default (Default (..))
+import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
 import qualified Data.Text as T
+import Data.Traversable (for)
 import Data.Tree (Tree (Node))
+import qualified Data.Tree as Tree
+import qualified Data.YAML as Y
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
+import qualified Shower
 import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
+import qualified Text.Megaparsec as M
+import qualified Text.Megaparsec.Char as M
 import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Definition (Pandoc (..))
 import qualified Text.Pandoc.Walk as W
@@ -109,12 +117,44 @@ markdownRouteInits (MarkdownRoute (slug :| rest')) =
 --
 -- It contains the list of all markdown files, parsed as Pandoc AST.
 data Model = Model
-  { modelDocs :: Map MarkdownRoute Pandoc
+  { modelDocs :: Map MarkdownRoute (Map Text Text, Pandoc),
+    modelNav :: Tree Slug
   }
   deriving (Eq, Show)
 
 instance Default Model where
-  def = Model mempty
+  def = Model mempty singletonNav
+    where
+      singletonNav = Node "index" mempty
+
+slugTreeInsertPath :: NonEmpty Slug -> Tree Slug -> Tree Slug
+slugTreeInsertPath ((Ema.unSlug -> "index") :| []) t =
+  -- "index" is the tree root; nothing to do.
+  t
+slugTreeInsertPath ((Ema.unSlug -> "index") :| _rest) _t =
+  error "Paths of form index/foo are unrecognized"
+slugTreeInsertPath a b =
+  go (toList a) b
+  where
+    go slugs (Node slug children) =
+      case slugs of
+        [] -> Node slug children
+        (top : rest) ->
+          case findChild top children of
+            Nothing ->
+              let newChild = go rest (Node top [])
+               in Node slug (children <> one newChild)
+            Just (Node _match grandChildren) ->
+              let oneDead = deleteChild top children
+                  newChild = go rest (Node top grandChildren)
+               in Node slug (oneDead <> one newChild)
+    findChild x xs =
+      List.find (\n -> Tree.rootLabel n == x) xs
+    deleteChild x xs =
+      List.deleteBy (\p q -> Tree.rootLabel p == Tree.rootLabel q) (Node x []) xs
+
+slugTreeDeletePath :: NonEmpty Slug -> Tree Slug -> Tree Slug
+slugTreeDeletePath slugs t = undefined
 
 -- | Hardcoded nav tree.
 --
@@ -153,19 +193,33 @@ navTree =
 
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
-  Map.lookup k . modelDocs
+  fmap snd . Map.lookup k . modelDocs
+
+getMarkdownMeta :: Read a => Text -> Map Text Text -> Maybe a
+getMarkdownMeta k =
+  readMaybe . toString <=< Map.lookup k
+
+getMarkdownFileOrder :: Map Text Text -> Word
+getMarkdownFileOrder =
+  fromMaybe 0 . getMarkdownMeta "order"
 
 modelMember :: MarkdownRoute -> Model -> Bool
 modelMember k =
   Map.member k . modelDocs
 
-modelInsert :: MarkdownRoute -> Pandoc -> Model -> Model
+modelInsert :: MarkdownRoute -> (Map Text Text, Pandoc) -> Model -> Model
 modelInsert k v model =
-  model {modelDocs = Map.insert k v (modelDocs model)}
+  model
+    { modelDocs = Map.insert k v (modelDocs model),
+      modelNav = slugTreeInsertPath (unMarkdownRoute k) (modelNav model)
+    }
 
 modelDelete :: MarkdownRoute -> Model -> Model
 modelDelete k model =
-  model {modelDocs = Map.delete k (modelDocs model)}
+  model
+    { modelDocs = Map.delete k (modelDocs model),
+      modelNav = slugTreeDeletePath (unMarkdownRoute k) (modelNav model)
+    }
 
 -- | Once we have a "model" and "route" (as defined above), we should define the
 -- @Ema@ typeclass to tell Ema how to decode/encode our routes, as well as the
@@ -226,13 +280,13 @@ main =
       FileSystem.Delete ->
         pure $ maybe id modelDelete $ mkMarkdownRoute fp
   where
-    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, Pandoc))
+    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Map Text Text, Pandoc)))
     readSource fp =
       runMaybeT $ do
         r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText fp
-        pure (r, parseMarkdown s)
+        pure (r, either (throw . BadMarkdown) (first $ fromMaybe mempty) $ parseMarkdown @(Map Text Text) fp s)
 
 -- ------------------------
 -- Our site HTML
@@ -295,6 +349,8 @@ bodyHtml model r doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     containerLayout (renderSidebarNav model r) $ do
       renderBreadcrumbs model r
+      H.pre $ do
+        H.text $ toText $ Shower.shower (modelNav model)
       renderPandoc $
         doc
           & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
@@ -585,16 +641,18 @@ plainify = W.query $ \case
 -- Markdown parsing helpers
 -- ------------------------
 
+-- TODO: Implement parsing YAML frontmatter into
+
 newtype BadMarkdown = BadMarkdown Text
   deriving (Show, Exception)
 
-parseMarkdown :: Text -> Pandoc
-parseMarkdown s =
-  Pandoc mempty $
-    B.toList $
-      CP.unCm @() @B.Blocks $
-        either (throw . BadMarkdown . show) id $
-          join $ CM.commonmarkWith @(Either CM.ParseError) markdownSpec "x" s
+parseMarkdown :: forall meta. Y.FromYAML meta => FilePath -> Text -> Either Text (Maybe meta, Pandoc)
+parseMarkdown fn s = do
+  (mMeta, markdown) <- partitionMarkdown fn s
+  mMetaVal <- parseYaml fn `traverse` mMeta
+  blocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) fullMarkdownSpec fn markdown
+  let doc = Pandoc mempty $ B.toList . CP.unCm @() @B.Blocks $ blocks
+  pure (mMetaVal, doc)
 
 type SyntaxSpec' m il bl =
   ( Monad m,
@@ -616,10 +674,10 @@ type SyntaxSpec' m il bl =
     CE.HasSpan il
   )
 
-markdownSpec ::
+fullMarkdownSpec ::
   SyntaxSpec' m il bl =>
   CM.SyntaxSpec m il bl
-markdownSpec =
+fullMarkdownSpec =
   mconcat
     [ CE.gfmExtensions,
       CE.fancyListSpec,
@@ -634,6 +692,36 @@ markdownSpec =
       CE.autolinkSpec,
       CM.defaultSyntaxSpec,
       -- as the commonmark documentation states, pipeTableSpec should be placed after
-      -- fancyListSpec and defaultSyntaxSpec to avoid bad results when non-table lines
+      -- fancyListSpec and defaultSyntaxSpec to avoid bad results when parsing
+      -- non-table lines
       CE.pipeTableSpec
     ]
+
+-- | Identify metadata block at the top, and split it from markdown body.
+--
+-- FIXME: https://github.com/srid/neuron/issues/175
+partitionMarkdown :: FilePath -> Text -> Either Text (Maybe Text, Text)
+partitionMarkdown =
+  parse (M.try splitP <|> fmap (Nothing,) M.takeRest)
+  where
+    separatorP :: M.Parsec Void Text ()
+    separatorP =
+      void $ M.string "---" <* M.eol
+    splitP :: M.Parsec Void Text (Maybe Text, Text)
+    splitP = do
+      separatorP
+      a <- toText <$> manyTill M.anySingle (M.try $ M.eol *> separatorP)
+      b <- M.takeRest
+      pure (Just a, b)
+    parse :: M.Parsec Void Text a -> String -> Text -> Either Text a
+    parse p fn s =
+      first (toText . M.errorBundlePretty) $
+        M.parse (p <* M.eof) fn s
+
+-- NOTE: HsYAML parsing is rather slow due to its use of DList.
+-- See https://github.com/haskell-hvr/HsYAML/issues/40
+parseYaml :: Y.FromYAML a => FilePath -> Text -> Either Text a
+parseYaml n (encodeUtf8 -> v) = do
+  let mkError (loc, emsg) =
+        toText $ n <> ":" <> Y.prettyPosWithSource loc v " error" <> emsg
+  first mkError $ Y.decode1 v
