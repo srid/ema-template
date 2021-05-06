@@ -1,7 +1,5 @@
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -14,11 +12,7 @@
 --   https://github.com/srid/www.srid.ca/blob/master/src/Main.hs
 module Main where
 
-import qualified Commonmark as CM
-import qualified Commonmark.Extensions as CE
-import qualified Commonmark.Pandoc as CP
 import Control.Exception (throw)
-import Control.Monad.Combinators (manyTill)
 import Control.Monad.Logger
 import Data.Default (Default (..))
 import qualified Data.List as List
@@ -33,14 +27,13 @@ import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
+import qualified Ema.Helper.Markdown as Markdown
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
 import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-import qualified Text.Megaparsec as M
-import qualified Text.Megaparsec.Char as M
 import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Definition (Pandoc (..))
 import qualified Text.Pandoc.Walk as W
@@ -265,7 +258,10 @@ main =
         r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText fp
-        pure (r, either (throw . BadMarkdown) (first $ fromMaybe def) $ parseMarkdown @Meta fp s)
+        pure (r, either (throw . BadMarkdown) (first $ fromMaybe def) $ Markdown.parseMarkdownWithFrontMatter @Meta fp s)
+
+newtype BadMarkdown = BadMarkdown Text
+  deriving (Show, Exception)
 
 -- ------------------------
 -- Our site HTML
@@ -289,7 +285,7 @@ headHtml r doc = do
       if r == indexMarkdownRoute
         then "Ema – next-gen Haskell static site generator"
         else
-          let routeTitle = maybe (Ema.unSlug $ last $ unMarkdownRoute r) plainify $ getPandocH1 doc
+          let routeTitle = maybe (Ema.unSlug $ last $ unMarkdownRoute r) Markdown.plainify $ getPandocH1 doc
            in routeTitle <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
@@ -414,7 +410,7 @@ lookupTitleForgiving model r =
   fromMaybe (markdownRouteFileBase r) $ do
     doc <- modelLookup r model
     is <- getPandocH1 doc
-    pure $ plainify is
+    pure $ Markdown.plainify is
 
 -- ------------------------
 -- Pandoc transformer
@@ -556,7 +552,7 @@ rpInline = \case
       ! rpAttr attr
       $ mapM_ rpInline is
   B.Image attr is (url, title) ->
-    H.img ! A.src (H.textValue url) ! A.title (H.textValue title) ! A.alt (H.textValue $ plainify is) ! rpAttr attr
+    H.img ! A.src (H.textValue url) ! A.title (H.textValue title) ! A.alt (H.textValue $ Markdown.plainify is) ! rpAttr attr
   B.Note _ ->
     throw Unsupported
   B.Span attr is ->
@@ -599,106 +595,3 @@ getPandocH1 = listToMaybe . W.query go
         [inlines]
       _ ->
         []
-
--- | Convert Pandoc AST inlines to raw text.
-plainify :: [B.Inline] -> Text
-plainify = W.query $ \case
-  B.Str x -> x
-  B.Code _attr x -> x
-  B.Space -> " "
-  B.SoftBreak -> " "
-  B.LineBreak -> " "
-  B.RawInline _fmt s -> s
-  B.Math _mathTyp s -> s
-  -- Ignore the rest of AST nodes, as they are recursively defined in terms of
-  -- `Inline` which `W.query` will traverse again.
-  _ -> ""
-
--- ------------------------
--- Markdown parsing helpers
--- ------------------------
-
--- TODO: Implement parsing YAML frontmatter into
-
-newtype BadMarkdown = BadMarkdown Text
-  deriving (Show, Exception)
-
-parseMarkdown :: forall meta. Y.FromYAML meta => FilePath -> Text -> Either Text (Maybe meta, Pandoc)
-parseMarkdown fn s = do
-  (mMeta, markdown) <- partitionMarkdown fn s
-  mMetaVal <- parseYaml fn `traverse` mMeta
-  blocks <- first show $ join $ CM.commonmarkWith @(Either CM.ParseError) fullMarkdownSpec fn markdown
-  let doc = Pandoc mempty $ B.toList . CP.unCm @() @B.Blocks $ blocks
-  pure (mMetaVal, doc)
-
-type SyntaxSpec' m il bl =
-  ( Monad m,
-    CM.IsBlock il bl,
-    CM.IsInline il,
-    Typeable m,
-    Typeable il,
-    Typeable bl,
-    CE.HasEmoji il,
-    CE.HasStrikethrough il,
-    CE.HasPipeTable il bl,
-    CE.HasTaskList il bl,
-    CM.ToPlainText il,
-    CE.HasFootnote il bl,
-    CE.HasMath il,
-    CE.HasDefinitionList il bl,
-    CE.HasDiv bl,
-    CE.HasQuoted il,
-    CE.HasSpan il
-  )
-
-fullMarkdownSpec ::
-  SyntaxSpec' m il bl =>
-  CM.SyntaxSpec m il bl
-fullMarkdownSpec =
-  mconcat
-    [ CE.gfmExtensions,
-      CE.fancyListSpec,
-      CE.footnoteSpec,
-      CE.mathSpec,
-      CE.smartPunctuationSpec,
-      CE.definitionListSpec,
-      CE.attributesSpec,
-      CE.rawAttributeSpec,
-      CE.fencedDivSpec,
-      CE.bracketedSpanSpec,
-      CE.autolinkSpec,
-      CM.defaultSyntaxSpec,
-      -- as the commonmark documentation states, pipeTableSpec should be placed after
-      -- fancyListSpec and defaultSyntaxSpec to avoid bad results when parsing
-      -- non-table lines
-      CE.pipeTableSpec
-    ]
-
--- | Identify metadata block at the top, and split it from markdown body.
---
--- FIXME: https://github.com/srid/neuron/issues/175
-partitionMarkdown :: FilePath -> Text -> Either Text (Maybe Text, Text)
-partitionMarkdown =
-  parse (M.try splitP <|> fmap (Nothing,) M.takeRest)
-  where
-    separatorP :: M.Parsec Void Text ()
-    separatorP =
-      void $ M.string "---" <* M.eol
-    splitP :: M.Parsec Void Text (Maybe Text, Text)
-    splitP = do
-      separatorP
-      a <- toText <$> manyTill M.anySingle (M.try $ M.eol *> separatorP)
-      b <- M.takeRest
-      pure (Just a, b)
-    parse :: M.Parsec Void Text a -> String -> Text -> Either Text a
-    parse p fn s =
-      first (toText . M.errorBundlePretty) $
-        M.parse (p <* M.eof) fn s
-
--- NOTE: HsYAML parsing is rather slow due to its use of DList.
--- See https://github.com/haskell-hvr/HsYAML/issues/40
-parseYaml :: Y.FromYAML a => FilePath -> Text -> Either Text a
-parseYaml n (encodeUtf8 -> v) = do
-  let mkError (loc, emsg) =
-        toText $ n <> ":" <> Y.prettyPosWithSource loc v " error" <> emsg
-  first mkError $ Y.decode1 v
