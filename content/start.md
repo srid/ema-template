@@ -1,3 +1,7 @@
+---
+order: 1
+---
+
 # Getting Started
 
 As first steps, perform the following before proceeding to the tutorial section below:

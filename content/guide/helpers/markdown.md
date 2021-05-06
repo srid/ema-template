@@ -1,3 +1,6 @@
+---
+order: 3
+---
 # Using Markdown
 
 There are quite a few packages to convert Markdown to HTML,

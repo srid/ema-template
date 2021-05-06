@@ -1,3 +1,6 @@
+---
+order: 5
+---
 # Helpers
 
 Beyond the model and route types, Ema leaves it up to you as to how to develop your site. The following are not *required* when using Ema; nevertheless they are useful inasmuch as they capture common patterns in writing a good static site:

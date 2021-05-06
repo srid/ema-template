@@ -1,3 +1,7 @@
+---
+order: 2
+---
+
 # Guide
 
 After having familiarized yourself with Ema by following the [earlier section](start.md), you are now ready to dive deep into learning how to achieve specific things.

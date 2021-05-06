@@ -1,3 +1,6 @@
+---
+order: 3
+---
 # Slug
 
 In an _URL_ like `/foo/bar`, there are two _slugs_: "foo" and "bar". Thus, URLs in a static site can be represented by a _list_ of slugs. 
