@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
@@ -160,7 +159,22 @@ slugTreeInsertPath getOrder a b =
       List.deleteBy (\p q -> Tree.rootLabel p == Tree.rootLabel q) (Node x []) xs
 
 slugTreeDeletePath :: NonEmpty Slug -> Tree Slug -> Tree Slug
-slugTreeDeletePath slugs t = undefined
+slugTreeDeletePath ((Ema.unSlug -> "index") :| []) _t =
+  error "index.md should not be removed"
+slugTreeDeletePath ((Ema.unSlug -> "index") :| _rest) _t =
+  error "Paths of form index/foo are unrecognized"
+slugTreeDeletePath slugs (Node index subs) =
+  Node index $ treeDeleteByPath (toList slugs) subs
+  where
+    treeDeleteByPath :: Eq a => [a] -> [Tree a] -> [Tree a]
+    treeDeleteByPath [] t = t
+    treeDeleteByPath [p] t =
+      List.deleteBy (\x y -> Tree.rootLabel x == Tree.rootLabel y) (Node p []) t
+    treeDeleteByPath (p : ps) t =
+      t <&> \node@(Node x xs) ->
+        if x == p
+          then Node x $ treeDeleteByPath ps xs
+          else node
 
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
