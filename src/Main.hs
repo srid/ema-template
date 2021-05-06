@@ -1,6 +1,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -25,7 +26,6 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
 import qualified Data.Text as T
-import Data.Traversable (for)
 import Data.Tree (Tree (Node))
 import qualified Data.Tree as Tree
 import qualified Data.YAML as Y
@@ -35,7 +35,6 @@ import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
-import qualified Shower
 import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
 import qualified Text.Blaze.Html5 as H
@@ -117,7 +116,7 @@ markdownRouteInits (MarkdownRoute (slug :| rest')) =
 --
 -- It contains the list of all markdown files, parsed as Pandoc AST.
 data Model = Model
-  { modelDocs :: Map MarkdownRoute (Map Text Text, Pandoc),
+  { modelDocs :: Map MarkdownRoute (Meta, Pandoc),
     modelNav :: Tree Slug
   }
   deriving (Eq, Show)
@@ -127,27 +126,41 @@ instance Default Model where
     where
       singletonNav = Node "index" mempty
 
-slugTreeInsertPath :: NonEmpty Slug -> Tree Slug -> Tree Slug
-slugTreeInsertPath ((Ema.unSlug -> "index") :| []) t =
+data Meta = Meta
+  { order :: Word
+  }
+  deriving (Eq, Show)
+
+instance Y.FromYAML Meta where
+  parseYAML = Y.withMap "FrontMatter" $ \m ->
+    Meta
+      <$> m Y..: "order"
+
+instance Default Meta where
+  def = Meta 0
+
+slugTreeInsertPath :: Ord ord => (NonEmpty Slug -> ord) -> NonEmpty Slug -> Tree Slug -> Tree Slug
+slugTreeInsertPath _ ((Ema.unSlug -> "index") :| []) t =
   -- "index" is the tree root; nothing to do.
   t
-slugTreeInsertPath ((Ema.unSlug -> "index") :| _rest) _t =
+slugTreeInsertPath _ ((Ema.unSlug -> "index") :| _rest) _t =
   error "Paths of form index/foo are unrecognized"
-slugTreeInsertPath a b =
-  go (toList a) b
+slugTreeInsertPath getOrder a b =
+  go (toList a) b []
   where
-    go slugs (Node slug children) =
-      case slugs of
-        [] -> Node slug children
-        (top : rest) ->
-          case findChild top children of
-            Nothing ->
-              let newChild = go rest (Node top [])
-               in Node slug (children <> one newChild)
-            Just (Node _match grandChildren) ->
-              let oneDead = deleteChild top children
-                  newChild = go rest (Node top grandChildren)
-               in Node slug (oneDead <> one newChild)
+    go slugs (Node slug children) ancestors =
+      let sortChildren = sortOn $ (\s -> getOrder $ NE.reverse $ s :| ancestors) . Tree.rootLabel
+       in case slugs of
+            [] -> Node slug children
+            (top : rest) ->
+              case findChild top children of
+                Nothing ->
+                  let newChild = go rest (Node top []) (slug : ancestors)
+                   in Node slug $ sortChildren (children <> one newChild)
+                Just (Node _match grandChildren) ->
+                  let oneDead = deleteChild top children
+                      newChild = go rest (Node top grandChildren) (slug : ancestors)
+                   in Node slug $ sortChildren (oneDead <> one newChild)
     findChild x xs =
       List.find (\n -> Tree.rootLabel n == x) xs
     deleteChild x xs =
@@ -156,63 +169,29 @@ slugTreeInsertPath a b =
 slugTreeDeletePath :: NonEmpty Slug -> Tree Slug -> Tree Slug
 slugTreeDeletePath slugs t = undefined
 
--- | Hardcoded nav tree.
---
--- TODO: https://github.com/srid/ema/issues/22
-navTree :: Tree Slug
-navTree =
-  Node
-    "index"
-    [ Node
-        "start"
-        [ Node "tutorial" mempty
-        ],
-      Node
-        "guide"
-        [ Node "model" mempty,
-          Node "routes" mempty,
-          Node "class" mempty,
-          Node "render" mempty,
-          Node
-            "helpers"
-            [ -- Helpers
-              Node "tailwind" mempty,
-              Node "filesystem" mempty,
-              Node "markdown" mempty
-            ]
-        ],
-      Node
-        "concepts"
-        [ Node "hot-reload" mempty,
-          Node "lvar" mempty,
-          Node "slug" mempty,
-          Node "cli" mempty,
-          Node "logging" mempty
-        ]
-    ]
-
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
   fmap snd . Map.lookup k . modelDocs
 
-getMarkdownMeta :: Read a => Text -> Map Text Text -> Maybe a
-getMarkdownMeta k =
-  readMaybe . toString <=< Map.lookup k
-
-getMarkdownFileOrder :: Map Text Text -> Word
-getMarkdownFileOrder =
-  fromMaybe 0 . getMarkdownMeta "order"
+modelLookupMeta :: MarkdownRoute -> Model -> Meta
+modelLookupMeta k =
+  maybe def fst . Map.lookup k . modelDocs
 
 modelMember :: MarkdownRoute -> Model -> Bool
 modelMember k =
   Map.member k . modelDocs
 
-modelInsert :: MarkdownRoute -> (Map Text Text, Pandoc) -> Model -> Model
+modelInsert :: MarkdownRoute -> (Meta, Pandoc) -> Model -> Model
 modelInsert k v model =
-  model
-    { modelDocs = Map.insert k v (modelDocs model),
-      modelNav = slugTreeInsertPath (unMarkdownRoute k) (modelNav model)
-    }
+  let modelDocs' = Map.insert k v (modelDocs model)
+   in model
+        { modelDocs = modelDocs',
+          modelNav =
+            slugTreeInsertPath
+              (\k' -> order $ maybe def fst $ Map.lookup (MarkdownRoute k') modelDocs')
+              (unMarkdownRoute k)
+              (modelNav model)
+        }
 
 modelDelete :: MarkdownRoute -> Model -> Model
 modelDelete k model =
@@ -280,13 +259,13 @@ main =
       FileSystem.Delete ->
         pure $ maybe id modelDelete $ mkMarkdownRoute fp
   where
-    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Map Text Text, Pandoc)))
+    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
     readSource fp =
       runMaybeT $ do
         r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText fp
-        pure (r, either (throw . BadMarkdown) (first $ fromMaybe mempty) $ parseMarkdown @(Map Text Text) fp s)
+        pure (r, either (throw . BadMarkdown) (first $ fromMaybe def) $ parseMarkdown @Meta fp s)
 
 -- ------------------------
 -- Our site HTML
@@ -349,8 +328,6 @@ bodyHtml model r doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     containerLayout (renderSidebarNav model r) $ do
       renderBreadcrumbs model r
-      H.pre $ do
-        H.text $ toText $ Shower.shower (modelNav model)
       renderPandoc $
         doc
           & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
@@ -393,7 +370,7 @@ bodyHtml model r doc = do
 
 renderSidebarNav :: Model -> MarkdownRoute -> H.Html
 renderSidebarNav model currentRoute = do
-  let (Node _rootSlug topLevels) = navTree
+  let (Node _rootSlug topLevels) = modelNav model
   H.div ! A.class_ "pl-2 font-bold" $ renderRoute "" indexMarkdownRoute
   go [] topLevels
   where
