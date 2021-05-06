@@ -119,7 +119,9 @@ instance Default Model where
       singletonNav = Node "index" mempty
 
 data Meta = Meta
-  { order :: Word
+  { -- | Indicates the order of the Markdown file in sidebar tree, relative to
+    -- its siblings.
+    order :: Word
   }
   deriving (Eq, Show)
 
@@ -129,7 +131,7 @@ instance Y.FromYAML Meta where
       <$> m Y..: "order"
 
 instance Default Meta where
-  def = Meta 0
+  def = Meta maxBound
 
 slugTreeInsertPath :: Ord ord => (NonEmpty Slug -> ord) -> NonEmpty Slug -> Tree Slug -> Tree Slug
 slugTreeInsertPath _ ((Ema.unSlug -> "index") :| []) t =
