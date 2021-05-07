@@ -12,17 +12,20 @@ There are quite a few packages to convert Markdown to HTML,
 
 ## Helper
 
-Ema provides a helper to parse Markdown files with YAML frontmatter, using commonmark-hs.
+Ema provides a helper to parse Markdown files with YAML frontmatter, using commonmark-hs. If you are parsing front matter, you can use any type that has a [`FromYAML`](https://hackage.haskell.org/package/HsYAML-0.2.1.0/docs/Data-YAML.html#t:FromYAML) instance.
 
 ```haskell
-import qualified Ema.Helper.Markdowen as Markdown
+import qualified Ema.Helper.Markdown as Markdown
 
--- This is usually a sum type
+-- Front matter metadata can be any type with a `FromYAML` instance
+-- 
+-- Using a `Map` is a lazy way to capture metadata, but in real code we
+-- generally define a sum type and manually derive `FromYAML` for it.
 type Metadata = Map Text Text 
 
 -- Returns `Either Text (Metadata, Pandoc)`
-Markdown.parseMarkdownWithFrontMatter 
-    @Metadata "test.md" "Hello *world*"
+Markdown.parseMarkdownWithFrontMatter @Metadata 
+    "test.md" "Hello *world*"
 ```
 
 This very site uses this helper to parse Markdown files into Pandoc AST. Furthermore it provides its own renderer of the Pandoc AST, to be able to customize the CSS styling of individual AST nodes. Consult [the source code](https://github.com/srid/ema-docs/blob/master/src/Main.hs) for details.
