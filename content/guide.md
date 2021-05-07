@@ -4,7 +4,7 @@ order: 2
 
 # Guide
 
-After having familiarized yourself with Ema by following the [earlier section](start.md), you are now ready to dive deep into learning how to achieve specific things.
+After having familiarized yourself with Ema by following the [earlier section](start/tutorial.md), you are now ready to dive deep into learning how to achieve specific things.
 
 * [Defining your model](guide/model.md) -- [Define your site model such that it supports hot reload]{.item-intro}
 * [Working with routes](guide/routes.md) -- [Unless you site has a single page (`index.html`), you will need to manage a set of routes]{.item-intro}
