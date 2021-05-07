@@ -15,7 +15,6 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
 * [Guide](guide.md)
 * [Concepts](concepts.md)
 * [Ema News](https://notes.srid.ca/ema) ([RSS Feed](https://notes.srid.ca/ema.xml))
-* We support [FAIR](https://www.fairforall.org/about/)
 :::
 
 :::{.flex .justify-center .items-center .mb-8}
@@ -24,4 +23,8 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
   <p>Your browser doesn't support HTML5 video. Here is
      a <a href="/ema-demo.mp4">link to the video</a> instead.</p>
 </video>
+:::
+
+:::{.flex .justify-center .items-center}
+[![FAIR](https://img.shields.io/badge/FAIR-pledge-blue)](https://www.fairforall.org/about/)
 :::
