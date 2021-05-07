@@ -274,8 +274,10 @@ headHtml r doc = do
         |]
 
 data ContainerType
-  = CHeader
-  | CBody
+  = -- | The row representing title part of the site
+    CHeader
+  | -- | The row representing the main part of the site. Sidebar lives here, as well as <main>
+    CBody
   deriving (Eq, Show)
 
 containerLayout :: ContainerType -> H.Html -> H.Html -> H.Html
@@ -292,20 +294,20 @@ containerLayout ctype sidebar w = do
 bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml model r doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
-    -- /ema.svg
-    let sidebarLogo2 =
+    -- Header row
+    let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
             H.a ! A.href (H.toValue $ Ema.routeUrl indexMarkdownRoute) $
               H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "/ema.svg"
-    containerLayout CHeader sidebarLogo2 $ do
+    containerLayout CHeader sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
-
+    -- Main row
     containerLayout CBody (H.div ! A.class_ "bg-pink-50 rounded pt-1 pb-2" $ renderSidebarNav model r) $ do
       renderBreadcrumbs model r
       renderPandoc $
         doc
-          & withoutH1
+          & withoutH1 -- Eliminate H1, because we are rendering it separately (see above)
           & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
           & rewriteLinks
             -- Rewrite .md links to @MarkdownRoute@
@@ -449,7 +451,7 @@ rpBlock = \case
   B.CodeBlock (id', classes, attrs) s ->
     -- Prism friendly classes
     let classes' = flip concatMap classes $ \cls -> [cls, "language-" <> cls]
-     in H.div ! A.class_ "py-0.5" $ H.pre ! rpAttr (id', classes', attrs) $ H.code ! rpAttr ("", classes', []) $ H.text s
+     in H.div ! A.class_ "py-0.5 text-sm" $ H.pre ! rpAttr (id', classes', attrs) $ H.code ! rpAttr ("", classes', []) $ H.text s
   B.RawBlock (B.Format fmt) html ->
     if fmt == "html"
       then H.unsafeByteString $ encodeUtf8 html
