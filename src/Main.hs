@@ -253,9 +253,7 @@ headHtml r doc = do
     H.text $
       if r == indexMarkdownRoute
         then "Ema – next-gen Haskell static site generator"
-        else
-          let routeTitle = maybe (Ema.unSlug $ last $ unMarkdownRoute r) Markdown.plainify $ getPandocH1 doc
-           in routeTitle <> " – Ema"
+        else lookupTitle doc r <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
@@ -275,26 +273,39 @@ headHtml r doc = do
         <link href="/ema.svg" rel="icon" />
         |]
 
-containerLayout :: H.Html -> H.Html -> H.Html
-containerLayout sidebar w = do
+data ContainerType
+  = CHeader
+  | CBody
+  deriving (Eq, Show)
+
+containerLayout :: ContainerType -> H.Html -> H.Html -> H.Html
+containerLayout ctype sidebar w = do
   H.div ! A.class_ "px-2 grid grid-cols-12" $ do
-    H.div ! A.class_ "hidden mt-2 md:block md:col-span-3 md:sticky md:top-0 md:h-screen overflow-x-auto" $ do
+    let sidebarCls = case ctype of
+          CHeader -> ""
+          CBody -> "md:sticky md:top-0 md:h-screen overflow-x-auto"
+    H.div ! A.class_ ("hidden md:mr-4 md:block md:col-span-3 " <> sidebarCls) $ do
       sidebar
     H.div ! A.class_ "col-span-12 md:col-span-9" $ do
       w
 
 bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml model r doc = do
-  H.div ! A.class_ "flex justify-center p-4 bg-pink-600 text-gray-100 font-bold text-2xl" $ do
-    H.div $ do
-      "We support "
-      H.a ! A.class_ "underline" ! targetBlank ! A.href "https://www.fairforall.org/about/" $ "FAIR"
-
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
-    containerLayout (renderSidebarNav model r) $ do
+    -- /ema.svg
+    let sidebarLogo2 =
+          H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
+            H.a ! A.href (H.toValue $ Ema.routeUrl indexMarkdownRoute) $
+              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "/ema.svg"
+    containerLayout CHeader sidebarLogo2 $ do
+      H.div ! A.class_ "flex justify-center items-center" $ do
+        H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
+
+    containerLayout CBody (H.div ! A.class_ "bg-pink-50 rounded pt-1 pb-2" $ renderSidebarNav model r) $ do
       renderBreadcrumbs model r
       renderPandoc $
         doc
+          & withoutH1
           & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
           & rewriteLinks
             -- Rewrite .md links to @MarkdownRoute@
@@ -335,7 +346,6 @@ bodyHtml model r doc = do
 
 renderSidebarNav :: Model -> MarkdownRoute -> H.Html
 renderSidebarNav model currentRoute = do
-  H.div ! A.class_ "pl-2 font-bold" $ renderRoute "" indexMarkdownRoute
   -- Drop toplevel index.md from sidebar tree (because we are linking to it manually)
   let navTree = treeDeleteChild "index" $ modelNav model
   go [] navTree
@@ -347,8 +357,8 @@ renderSidebarNav model currentRoute = do
           renderRoute (if null parSlugs || not (null children) then "" else "text-gray-600") hereRoute
           go ([slug] <> parSlugs) children
     renderRoute c r = do
-      let linkCls = if r == currentRoute then "text-pink-600" else ""
-      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ linkCls ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
+      let linkCls = if r == currentRoute then "text-pink-600 font-bold" else ""
+      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs model r = do
@@ -381,6 +391,10 @@ lookupTitleForgiving model r =
     doc <- modelLookup r model
     is <- getPandocH1 doc
     pure $ Markdown.plainify is
+
+lookupTitle :: Pandoc -> MarkdownRoute -> Text
+lookupTitle doc r =
+  maybe (Ema.unSlug $ last $ unMarkdownRoute r) Markdown.plainify $ getPandocH1 doc
 
 -- ------------------------
 -- Pandoc transformer
@@ -565,6 +579,12 @@ getPandocH1 = listToMaybe . W.query go
         [inlines]
       _ ->
         []
+
+withoutH1 :: Pandoc -> Pandoc
+withoutH1 (Pandoc meta (B.Header 1 _ _ : rest)) =
+  Pandoc meta rest
+withoutH1 doc =
+  doc
 
 -- -------------------
 -- Data.Tree helpers

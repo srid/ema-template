@@ -15,6 +15,7 @@ The ultimate goal of ema is to facilitate creating with ease your own [neuron](h
 * [Guide](guide.md)
 * [Concepts](concepts.md)
 * [Ema News](https://notes.srid.ca/ema) ([RSS Feed](https://notes.srid.ca/ema.xml))
+* We support [FAIR](https://www.fairforall.org/about/)
 :::
 
 :::{.flex .justify-center .items-center .mb-8}
