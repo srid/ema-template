@@ -8,8 +8,6 @@ A "*model*" in Ema represents the state to use to generate your site. It could b
 Here's an example model:
 
 ```haskell
-type Slug = Text
-
 newtype BlogPosts = BlogPosts (Map Slug Text}
 ```
 
