@@ -14,19 +14,18 @@ module Main where
 import Control.Exception (throw)
 import Control.Monad.Logger
 import Data.Default (Default (..))
-import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
 import qualified Data.Text as T
 import Data.Tree (Tree (Node))
-import qualified Data.Tree as Tree
 import qualified Data.YAML as Y
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Markdown as Markdown
+import qualified Ema.Helper.PathTree as PathTree
 import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
 import System.FilePath (splitExtension, splitPath)
@@ -149,7 +148,7 @@ modelInsert k v model =
    in model
         { modelDocs = modelDocs',
           modelNav =
-            treeInsertPathMaintainingOrder
+            PathTree.treeInsertPathMaintainingOrder
               (\k' -> order $ maybe def fst $ Map.lookup (MarkdownRoute k') modelDocs')
               (unMarkdownRoute k)
               (modelNav model)
@@ -159,7 +158,7 @@ modelDelete :: MarkdownRoute -> Model -> Model
 modelDelete k model =
   model
     { modelDocs = Map.delete k (modelDocs model),
-      modelNav = treeDeletePath (unMarkdownRoute k) (modelNav model)
+      modelNav = PathTree.treeDeletePath (unMarkdownRoute k) (modelNav model)
     }
 
 -- | Once we have a "model" and "route" (as defined above), we should define the
@@ -349,7 +348,7 @@ bodyHtml model r doc = do
 renderSidebarNav :: Model -> MarkdownRoute -> H.Html
 renderSidebarNav model currentRoute = do
   -- Drop toplevel index.md from sidebar tree (because we are linking to it manually)
-  let navTree = treeDeleteChild "index" $ modelNav model
+  let navTree = PathTree.treeDeleteChild "index" $ modelNav model
   go [] navTree
   where
     go parSlugs xs =
@@ -587,59 +586,3 @@ withoutH1 (Pandoc meta (B.Header 1 _ _ : rest)) =
   Pandoc meta rest
 withoutH1 doc =
   doc
-
--- -------------------
--- Data.Tree helpers
--- -------------------
-
-treeInsertPath :: Eq a => NonEmpty a -> [Tree a] -> [Tree a]
-treeInsertPath =
-  treeInsertPathMaintainingOrder void
-
--- | Insert a node by path into a tree with descendants that are ordered.
---
--- Insertion will guarantee that descendants continue to be ordered as expected.
---
--- The order of descendents is determined by the given order function, which
--- takes the path to a node and return that node's order. The intention is to
--- lookup the actual order value which exists *outside* of the tree
--- datastructure itself.
-treeInsertPathMaintainingOrder :: (Eq a, Ord ord) => (NonEmpty a -> ord) -> NonEmpty a -> [Tree a] -> [Tree a]
-treeInsertPathMaintainingOrder ordF path t =
-  orderedTreeInsertPath ordF (toList path) t []
-  where
-    orderedTreeInsertPath :: (Eq a, Ord b) => (NonEmpty a -> b) -> [a] -> [Tree a] -> [a] -> [Tree a]
-    orderedTreeInsertPath _ [] trees _ =
-      trees
-    orderedTreeInsertPath pathOrder (top : rest) trees ancestors =
-      case treeFindChild top trees of
-        Nothing ->
-          let newChild = Node top $ orderedTreeInsertPath pathOrder rest [] (top : ancestors)
-           in sortChildrenOn pathOrder (trees <> one newChild)
-        Just (Node _match grandChildren) ->
-          let oneDead = treeDeleteChild top trees
-              newChild = Node top $ orderedTreeInsertPath pathOrder rest grandChildren (top : ancestors)
-           in sortChildrenOn pathOrder (oneDead <> one newChild)
-      where
-        treeFindChild x xs =
-          List.find (\n -> Tree.rootLabel n == x) xs
-        sortChildrenOn f =
-          sortOn $ (\s -> f $ NE.reverse $ s :| ancestors) . Tree.rootLabel
-
-treeDeletePath :: Eq a => NonEmpty a -> [Tree a] -> [Tree a]
-treeDeletePath slugs =
-  go (toList slugs)
-  where
-    go :: Eq a => [a] -> [Tree a] -> [Tree a]
-    go [] t = t
-    go [p] t =
-      List.deleteBy (\x y -> Tree.rootLabel x == Tree.rootLabel y) (Node p []) t
-    go (p : ps) t =
-      t <&> \node@(Node x xs) ->
-        if x == p
-          then Node x $ go ps xs
-          else node
-
-treeDeleteChild :: Eq a => a -> [Tree a] -> [Tree a]
-treeDeleteChild x =
-  List.deleteBy (\p q -> Tree.rootLabel p == Tree.rootLabel q) (Node x [])
