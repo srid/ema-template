@@ -1,6 +1,6 @@
 # Ema Template
 
-This repository represents a **real-world example** of [Ema](https://ema.srid.ca/) — it is the source for ema.srid.ca website — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
+This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with sidebar from a directory of Markdown files using Pandoc & Blaze HTML — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
 
 ## Getting Started
 
