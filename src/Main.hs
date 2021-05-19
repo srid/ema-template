@@ -18,7 +18,6 @@ import Data.Aeson (FromJSON)
 import Data.Default (Default (..))
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
-import Data.Profunctor (dimap)
 import qualified Data.Text as T
 import Data.Tree (Tree (Node))
 import Ema (Ema (..), Slug)
@@ -119,7 +118,7 @@ instance Default Model where
 data Meta = Meta
   { -- | Indicates the order of the Markdown file in sidebar tree, relative to
     -- its siblings.
-    order :: Word
+    order :: Int
   }
   deriving (Eq, Show, Generic, FromJSON)
 
@@ -304,7 +303,7 @@ bodyHtml model r doc = do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
     -- Main row
-    containerLayout CBody (H.div ! A.class_ "bg-pink-50 rounded pt-1 pb-2" $ renderSidebarNav model r) $ do
+    containerLayout CBody (H.div ! A.class_ "bg-yellow-50 rounded pt-1 pb-2" $ renderSidebarNav model r) $ do
       renderBreadcrumbs model r
       renderPandoc $
         doc
@@ -349,7 +348,7 @@ renderSidebarNav model currentRoute = do
           renderRoute (if null parSlugs || not (null children) then "" else "text-gray-600") hereRoute
           go ([slug] <> parSlugs) children
     renderRoute c r = do
-      let linkCls = if r == currentRoute then "text-pink-600 font-bold" else ""
+      let linkCls = if r == currentRoute then "text-yellow-600 font-bold" else ""
       H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
@@ -361,7 +360,7 @@ renderBreadcrumbs model r = do
           H.ul ! A.class_ "flex text-gray-500 text-sm lg:text-base" $ do
             forM_ crumbs $ \crumb ->
               H.li ! A.class_ "inline-flex items-center" $ do
-                H.a ! A.class_ "px-1 font-bold bg-pink-500 text-gray-50 rounded"
+                H.a ! A.class_ "px-1 font-bold bg-yellow-500 text-gray-50 rounded"
                   ! A.href (fromString . toString $ Ema.routeUrl crumb)
                   $ H.text $ lookupTitleForgiving model crumb
                 rightArrow
@@ -480,7 +479,6 @@ rpInline = \case
   B.Underline is ->
     H.u $ mapM_ rpInline is
   B.Strikeout is ->
-    -- FIXME: Should use <s>, but blaze doesn't have it.
     H.del $ mapM_ rpInline is
   B.Superscript is ->
     H.sup $ mapM_ rpInline is
@@ -500,8 +498,8 @@ rpInline = \case
   B.Link attr is (url, title) -> do
     let (cls, target) =
           if "://" `T.isInfixOf` url
-            then ("text-pink-600 hover:underline", targetBlank)
-            else ("text-pink-600 font-bold hover:bg-pink-50", mempty)
+            then ("text-yellow-600 hover:underline", targetBlank)
+            else ("text-yellow-600 font-bold hover:bg-pink-50", mempty)
     H.a
       ! A.class_ cls
       ! A.href (H.textValue url)

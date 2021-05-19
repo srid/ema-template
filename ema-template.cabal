@@ -36,7 +36,6 @@ executable ema-template
     , monad-logger
     , neat-interpolation
     , pandoc-types
-    , profunctors
     , relude
     , shower
     , tagged
