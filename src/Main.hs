@@ -249,6 +249,7 @@ render emaAction model r = do
 
 headHtml :: MarkdownRoute -> Pandoc -> H.Html
 headHtml r doc = do
+  H.base ! A.href "/ema-docs" -- A suitable base URL for GitHub-Pages, based on repo name
   H.title $
     H.text $
       if r == indexMarkdownRoute
