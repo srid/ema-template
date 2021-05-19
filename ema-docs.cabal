@@ -22,6 +22,7 @@ extra-source-files:
 
 executable ema-docs
   build-depends:
+    , aeson
     , async
     , base
     , blaze-html
@@ -31,7 +32,6 @@ executable ema-docs
     , directory
     , ema                 >=0.2
     , filepath
-    , HsYAML
     , lvar
     , monad-logger
     , neat-interpolation

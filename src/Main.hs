@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -13,13 +14,13 @@ module Main where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
+import Data.Aeson (FromJSON)
 import Data.Default (Default (..))
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 import Data.Profunctor (dimap)
 import qualified Data.Text as T
 import Data.Tree (Tree (Node))
-import qualified Data.YAML as Y
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
@@ -120,12 +121,7 @@ data Meta = Meta
     -- its siblings.
     order :: Word
   }
-  deriving (Eq, Show)
-
-instance Y.FromYAML Meta where
-  parseYAML = Y.withMap "FrontMatter" $ \m ->
-    Meta
-      <$> m Y..: "order"
+  deriving (Eq, Show, Generic, FromJSON)
 
 instance Default Meta where
   def = Meta maxBound
@@ -213,12 +209,14 @@ main =
     --
     -- We use the FileSystem helper to directly "mount" our files on to the
     -- LVar.
-    FileSystem.mountOnLVar "." ["**/*.md"] model $ \fp -> \case
-      FileSystem.Update -> do
-        mData <- readSource fp
-        pure $ maybe id (uncurry modelInsert) mData
-      FileSystem.Delete ->
-        pure $ maybe id modelDelete $ mkMarkdownRoute fp
+    let pats = [((), "**/*.md")]
+    FileSystem.mountOnLVar "." pats model def $ \(concatMap snd -> fps) action ->
+      chainM fps $ \fp -> case action of
+        FileSystem.Update -> do
+          mData <- readSource fp
+          pure $ maybe id (uncurry modelInsert) mData
+        FileSystem.Delete ->
+          pure $ maybe id modelDelete $ mkMarkdownRoute fp
   where
     readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
     readSource fp =
@@ -226,7 +224,22 @@ main =
         r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText fp
-        pure (r, either (throw . BadMarkdown) (first $ fromMaybe def) $ Markdown.parseMarkdownWithFrontMatter @Meta fp s)
+        pure
+          ( r,
+            either (throw . BadMarkdown) (first $ fromMaybe def) $
+              Markdown.parseMarkdownWithFrontMatter @Meta Markdown.fullMarkdownSpec fp s
+          )
+
+-- | Apply the list of actions in the given order to an initial argument.
+--
+-- chain [f1, f2, ...] x = ... (f2 (f1 x))
+chain :: [a -> a] -> a -> a
+chain = flip (foldl' $ flip ($))
+
+-- | Monadic version of `chain`
+chainM :: Monad m => [b] -> (b -> m (a -> a)) -> m (a -> a)
+chainM xs =
+  fmap chain . forM xs
 
 newtype BadMarkdown = BadMarkdown Text
   deriving (Show, Exception)
