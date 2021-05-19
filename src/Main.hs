@@ -245,11 +245,18 @@ render emaAction model r = do
       throw $ BadRoute r
     Just doc -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      Tailwind.layout emaAction (headHtml r doc) (bodyHtml model r doc)
+      Tailwind.layout emaAction (headHtml emaAction r doc) (bodyHtml model r doc)
 
-headHtml :: MarkdownRoute -> Pandoc -> H.Html
-headHtml r doc = do
-  H.base ! A.href "https://srid.github.io/ema-docs/" -- A suitable base URL for GitHub-Pages, based on repo name
+headHtml :: Ema.CLI.Action -> MarkdownRoute -> Pandoc -> H.Html
+headHtml emaAction r doc = do
+  case emaAction of
+    Ema.CLI.Generate _ ->
+      -- Since our URLs are all relative, and GitHub Pages uses a non-root base
+      -- URL, we should specify it explicitly. Note that this is not necessay if
+      -- you are using a CNAME.
+      H.base ! A.href "https://srid.github.io/ema-docs/"
+    _ ->
+      pure ()
   H.title $
     H.text $
       if r == indexMarkdownRoute
@@ -271,7 +278,7 @@ headHtml r doc = do
     favIcon = do
       H.unsafeByteString . encodeUtf8 $
         [text|
-        <link href="/ema.svg" rel="icon" />
+        <link href="/static/logo.svg" rel="icon" />
         |]
 
 data ContainerType
@@ -299,7 +306,7 @@ bodyHtml model r doc = do
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
             H.a ! A.href (H.toValue $ Ema.routeUrl indexMarkdownRoute) $
-              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "/ema.svg"
+              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "/static/logo.svg"
     containerLayout CHeader sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
