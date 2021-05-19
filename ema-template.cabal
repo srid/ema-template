@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               ema-docs
+name:               ema-template
 version:            0.1.0.0
 license:            AGPL-3.0-only
 copyright:          2021 Sridhar Ratnakumar
@@ -20,8 +20,9 @@ extra-source-files:
   LICENSE
   README.md
 
-executable ema-docs
+executable ema-template
   build-depends:
+    , aeson
     , async
     , base
     , blaze-html
@@ -31,12 +32,10 @@ executable ema-docs
     , directory
     , ema                 >=0.2
     , filepath
-    , HsYAML
     , lvar
     , monad-logger
     , neat-interpolation
     , pandoc-types
-    , profunctors
     , relude
     , shower
     , tagged

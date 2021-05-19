@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -13,13 +14,12 @@ module Main where
 
 import Control.Exception (throw)
 import Control.Monad.Logger
+import Data.Aeson (FromJSON)
 import Data.Default (Default (..))
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
-import Data.Profunctor (dimap)
 import qualified Data.Text as T
 import Data.Tree (Tree (Node))
-import qualified Data.YAML as Y
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
@@ -118,14 +118,9 @@ instance Default Model where
 data Meta = Meta
   { -- | Indicates the order of the Markdown file in sidebar tree, relative to
     -- its siblings.
-    order :: Word
+    order :: Int
   }
-  deriving (Eq, Show)
-
-instance Y.FromYAML Meta where
-  parseYAML = Y.withMap "FrontMatter" $ \m ->
-    Meta
-      <$> m Y..: "order"
+  deriving (Eq, Show, Generic, FromJSON)
 
 instance Default Meta where
   def = Meta maxBound
@@ -188,17 +183,17 @@ instance Ema Model MarkdownRoute where
 
   -- All static assets (relative to input directory) go here.
   staticAssets _ =
-    ["manifest.json", "ema.svg", "ema-demo.mp4"]
+    ["static"]
 
 -- ------------------------
 -- Main entry point
 -- ------------------------
 
 log :: MonadLogger m => Text -> m ()
-log = logInfoNS "ema-docs"
+log = logInfoNS "ema-template"
 
 logD :: MonadLogger m => Text -> m ()
-logD = logDebugNS "ema-docs"
+logD = logDebugNS "ema-template"
 
 main :: IO ()
 main =
@@ -213,12 +208,14 @@ main =
     --
     -- We use the FileSystem helper to directly "mount" our files on to the
     -- LVar.
-    FileSystem.mountOnLVar "." ["**/*.md"] model $ \fp -> \case
-      FileSystem.Update -> do
-        mData <- readSource fp
-        pure $ maybe id (uncurry modelInsert) mData
-      FileSystem.Delete ->
-        pure $ maybe id modelDelete $ mkMarkdownRoute fp
+    let pats = [((), "**/*.md")]
+    FileSystem.mountOnLVar "." pats model def $ \(concatMap snd -> fps) action ->
+      fmap (flip (foldl' $ flip ($))) . forM fps $ \fp -> case action of
+        FileSystem.Update -> do
+          mData <- readSource fp
+          pure $ maybe id (uncurry modelInsert) mData
+        FileSystem.Delete ->
+          pure $ maybe id modelDelete $ mkMarkdownRoute fp
   where
     readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
     readSource fp =
@@ -226,7 +223,11 @@ main =
         r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText fp
-        pure (r, either (throw . BadMarkdown) (first $ fromMaybe def) $ Markdown.parseMarkdownWithFrontMatter @Meta fp s)
+        pure
+          ( r,
+            either (throw . BadMarkdown) (first $ fromMaybe def) $
+              Markdown.parseMarkdownWithFrontMatter @Meta Markdown.fullMarkdownSpec fp s
+          )
 
 newtype BadMarkdown = BadMarkdown Text
   deriving (Show, Exception)
@@ -244,10 +245,18 @@ render emaAction model r = do
       throw $ BadRoute r
     Just doc -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      Tailwind.layout emaAction (headHtml r doc) (bodyHtml model r doc)
+      Tailwind.layout emaAction (headHtml emaAction r doc) (bodyHtml model r doc)
 
-headHtml :: MarkdownRoute -> Pandoc -> H.Html
-headHtml r doc = do
+headHtml :: Ema.CLI.Action -> MarkdownRoute -> Pandoc -> H.Html
+headHtml emaAction r doc = do
+  case emaAction of
+    Ema.CLI.Generate _ ->
+      -- Since our URLs are all relative, and GitHub Pages uses a non-root base
+      -- URL, we should specify it explicitly. Note that this is not necessay if
+      -- you are using a CNAME.
+      H.base ! A.href "https://srid.github.io/ema-docs/"
+    _ ->
+      H.base ! A.href "/"
   H.title $
     H.text $
       if r == indexMarkdownRoute
@@ -269,7 +278,7 @@ headHtml r doc = do
     favIcon = do
       H.unsafeByteString . encodeUtf8 $
         [text|
-        <link href="/ema.svg" rel="icon" />
+        <link href="static/logo.svg" rel="icon" />
         |]
 
 data ContainerType
@@ -297,17 +306,16 @@ bodyHtml model r doc = do
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
             H.a ! A.href (H.toValue $ Ema.routeUrl indexMarkdownRoute) $
-              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "/ema.svg"
+              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "static/logo.svg"
     containerLayout CHeader sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
     -- Main row
-    containerLayout CBody (H.div ! A.class_ "bg-pink-50 rounded pt-1 pb-2" $ renderSidebarNav model r) $ do
+    containerLayout CBody (H.div ! A.class_ "bg-yellow-50 rounded pt-1 pb-2" $ renderSidebarNav model r) $ do
       renderBreadcrumbs model r
       renderPandoc $
         doc
           & withoutH1 -- Eliminate H1, because we are rendering it separately (see above)
-          & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
           & rewriteLinks
             -- Rewrite .md links to @MarkdownRoute@
             ( \url -> fromMaybe url $ do
@@ -319,22 +327,12 @@ bodyHtml model r doc = do
                   else throw $ BadRoute target
             )
       H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
-        let editUrl = fromString $ "https://github.com/srid/ema-docs/edit/master/content/" <> markdownRouteSourcePath r
+        let editUrl = fromString $ "https://github.com/srid/ema-template/edit/master/content/" <> markdownRouteSourcePath r
         H.a ! A.href editUrl ! A.title "Edit this page on GitHub" $ editIcon
         H.div $ do
           "Powered by "
           H.a ! A.class_ "font-bold" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
-    emaMarkdownStyleLibrary =
-      Map.fromList
-        [ ("feature", "flex justify-center items-center text-center shadow-lg p-2 m-2 w-32 h-16 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-base font-bold hover:bg-pink-200 hover:border-black"),
-          ("avatar", "float-right w-32 h-32"),
-          -- List item specifc styles
-          ("item-intro", "text-gray-500"),
-          -- Styling the last line in series posts
-          ("last", "mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded"),
-          ("next", "py-2 text-xl italic font-bold")
-        ]
     editIcon =
       H.unsafeByteString $
         encodeUtf8
@@ -358,7 +356,7 @@ renderSidebarNav model currentRoute = do
           renderRoute (if null parSlugs || not (null children) then "" else "text-gray-600") hereRoute
           go ([slug] <> parSlugs) children
     renderRoute c r = do
-      let linkCls = if r == currentRoute then "text-pink-600 font-bold" else ""
+      let linkCls = if r == currentRoute then "text-yellow-600 font-bold" else ""
       H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
@@ -370,7 +368,7 @@ renderBreadcrumbs model r = do
           H.ul ! A.class_ "flex text-gray-500 text-sm lg:text-base" $ do
             forM_ crumbs $ \crumb ->
               H.li ! A.class_ "inline-flex items-center" $ do
-                H.a ! A.class_ "px-1 font-bold bg-pink-500 text-gray-50 rounded"
+                H.a ! A.class_ "px-1 font-bold bg-yellow-500 text-gray-50 rounded"
                   ! A.href (fromString . toString $ Ema.routeUrl crumb)
                   $ H.text $ lookupTitleForgiving model crumb
                 rightArrow
@@ -407,24 +405,6 @@ rewriteLinks f =
     B.Link attr is (url, title) ->
       B.Link attr is (f url, title)
     x -> x
-
-applyClassLibrary :: (Text -> Text) -> Pandoc -> Pandoc
-applyClassLibrary f =
-  walkBlocks . walkInlines
-  where
-    walkBlocks = W.walk $ \case
-      B.Div attr bs ->
-        B.Div (g attr) bs
-      x -> x
-    walkInlines = W.walk $ \case
-      B.Span attr is ->
-        B.Span (g attr) is
-      x -> x
-    g (id', cls, attr) =
-      (id', withPackedClass f cls, attr)
-    withPackedClass :: (Text -> Text) -> [Text] -> [Text]
-    withPackedClass =
-      dimap (T.intercalate " ") (T.splitOn " ")
 
 -- ------------------------
 -- Pandoc renderer
@@ -507,7 +487,6 @@ rpInline = \case
   B.Underline is ->
     H.u $ mapM_ rpInline is
   B.Strikeout is ->
-    -- FIXME: Should use <s>, but blaze doesn't have it.
     H.del $ mapM_ rpInline is
   B.Superscript is ->
     H.sup $ mapM_ rpInline is
@@ -527,8 +506,8 @@ rpInline = \case
   B.Link attr is (url, title) -> do
     let (cls, target) =
           if "://" `T.isInfixOf` url
-            then ("text-pink-600 hover:underline", targetBlank)
-            else ("text-pink-600 font-bold hover:bg-pink-50", mempty)
+            then ("text-yellow-600 hover:underline", targetBlank)
+            else ("text-yellow-600 font-bold hover:bg-pink-50", mempty)
     H.a
       ! A.class_ cls
       ! A.href (H.textValue url)
