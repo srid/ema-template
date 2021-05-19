@@ -184,17 +184,17 @@ instance Ema Model MarkdownRoute where
 
   -- All static assets (relative to input directory) go here.
   staticAssets _ =
-    ["manifest.json", "ema.svg", "ema-demo.mp4"]
+    ["static"]
 
 -- ------------------------
 -- Main entry point
 -- ------------------------
 
 log :: MonadLogger m => Text -> m ()
-log = logInfoNS "ema-docs"
+log = logInfoNS "ema-template"
 
 logD :: MonadLogger m => Text -> m ()
-logD = logDebugNS "ema-docs"
+logD = logDebugNS "ema-template"
 
 main :: IO ()
 main =
@@ -211,7 +211,7 @@ main =
     -- LVar.
     let pats = [((), "**/*.md")]
     FileSystem.mountOnLVar "." pats model def $ \(concatMap snd -> fps) action ->
-      chainM fps $ \fp -> case action of
+      fmap (flip (foldl' $ flip ($))) . forM fps $ \fp -> case action of
         FileSystem.Update -> do
           mData <- readSource fp
           pure $ maybe id (uncurry modelInsert) mData
@@ -229,17 +229,6 @@ main =
             either (throw . BadMarkdown) (first $ fromMaybe def) $
               Markdown.parseMarkdownWithFrontMatter @Meta Markdown.fullMarkdownSpec fp s
           )
-
--- | Apply the list of actions in the given order to an initial argument.
---
--- chain [f1, f2, ...] x = ... (f2 (f1 x))
-chain :: [a -> a] -> a -> a
-chain = flip (foldl' $ flip ($))
-
--- | Monadic version of `chain`
-chainM :: Monad m => [b] -> (b -> m (a -> a)) -> m (a -> a)
-chainM xs =
-  fmap chain . forM xs
 
 newtype BadMarkdown = BadMarkdown Text
   deriving (Show, Exception)
@@ -320,7 +309,6 @@ bodyHtml model r doc = do
       renderPandoc $
         doc
           & withoutH1 -- Eliminate H1, because we are rendering it separately (see above)
-          & applyClassLibrary (\c -> fromMaybe c $ Map.lookup c emaMarkdownStyleLibrary)
           & rewriteLinks
             -- Rewrite .md links to @MarkdownRoute@
             ( \url -> fromMaybe url $ do
@@ -332,22 +320,12 @@ bodyHtml model r doc = do
                   else throw $ BadRoute target
             )
       H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
-        let editUrl = fromString $ "https://github.com/srid/ema-docs/edit/master/content/" <> markdownRouteSourcePath r
+        let editUrl = fromString $ "https://github.com/srid/ema-template/edit/master/content/" <> markdownRouteSourcePath r
         H.a ! A.href editUrl ! A.title "Edit this page on GitHub" $ editIcon
         H.div $ do
           "Powered by "
           H.a ! A.class_ "font-bold" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
-    emaMarkdownStyleLibrary =
-      Map.fromList
-        [ ("feature", "flex justify-center items-center text-center shadow-lg p-2 m-2 w-32 h-16 lg:w-auto rounded border-2 border-gray-400 bg-pink-100 text-base font-bold hover:bg-pink-200 hover:border-black"),
-          ("avatar", "float-right w-32 h-32"),
-          -- List item specifc styles
-          ("item-intro", "text-gray-500"),
-          -- Styling the last line in series posts
-          ("last", "mt-8 border-t-2 border-pink-500 pb-1 pl-1 bg-gray-50 rounded"),
-          ("next", "py-2 text-xl italic font-bold")
-        ]
     editIcon =
       H.unsafeByteString $
         encodeUtf8
@@ -420,24 +398,6 @@ rewriteLinks f =
     B.Link attr is (url, title) ->
       B.Link attr is (f url, title)
     x -> x
-
-applyClassLibrary :: (Text -> Text) -> Pandoc -> Pandoc
-applyClassLibrary f =
-  walkBlocks . walkInlines
-  where
-    walkBlocks = W.walk $ \case
-      B.Div attr bs ->
-        B.Div (g attr) bs
-      x -> x
-    walkInlines = W.walk $ \case
-      B.Span attr is ->
-        B.Span (g attr) is
-      x -> x
-    g (id', cls, attr) =
-      (id', withPackedClass f cls, attr)
-    withPackedClass :: (Text -> Text) -> [Text] -> [Text]
-    withPackedClass =
-      dimap (T.intercalate " ") (T.splitOn " ")
 
 -- ------------------------
 -- Pandoc renderer

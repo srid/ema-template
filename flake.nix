@@ -19,7 +19,7 @@
         project = returnShellEnv:
           pkgs.haskellPackages.developPackage {
             inherit returnShellEnv;
-            name = "ema-docs";
+            name = "ema-template";
             root = ./.;
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {

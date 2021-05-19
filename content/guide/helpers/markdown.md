@@ -28,6 +28,6 @@ Markdown.parseMarkdownWithFrontMatter @Metadata
     "test.md" "Hello *world*"
 ```
 
-This very site uses this helper to parse Markdown files into Pandoc AST. Furthermore it provides its own renderer of the Pandoc AST, to be able to customize the CSS styling of individual AST nodes. Consult [the source code](https://github.com/srid/ema-docs/blob/master/src/Main.hs) for details.
+This very site uses this helper to parse Markdown files into Pandoc AST. Furthermore it provides its own renderer of the Pandoc AST, to be able to customize the CSS styling of individual AST nodes. Consult [the source code](https://github.com/srid/ema-template/blob/master/src/Main.hs) for details.
 
 Note that with Ema you can get [hot reload](concepts/hot-reload.md) support for your Markdown files using [filesystem notifications](guide/helpers/filesystem.md).
