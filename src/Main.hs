@@ -256,7 +256,7 @@ headHtml emaAction r doc = do
       -- you are using a CNAME.
       H.base ! A.href "https://srid.github.io/ema-docs/"
     _ ->
-      pure ()
+      H.base ! A.href "/"
   H.title $
     H.text $
       if r == indexMarkdownRoute
