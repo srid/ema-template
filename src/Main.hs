@@ -278,7 +278,7 @@ headHtml emaAction r doc = do
     favIcon = do
       H.unsafeByteString . encodeUtf8 $
         [text|
-        <link href="/static/logo.svg" rel="icon" />
+        <link href="static/logo.svg" rel="icon" />
         |]
 
 data ContainerType
@@ -306,7 +306,7 @@ bodyHtml model r doc = do
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
             H.a ! A.href (H.toValue $ Ema.routeUrl indexMarkdownRoute) $
-              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "/static/logo.svg"
+              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "static/logo.svg"
     containerLayout CHeader sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
