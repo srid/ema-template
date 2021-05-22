@@ -2,6 +2,8 @@
 
 This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with sidebar from a directory of Markdown files using Pandoc & Blaze HTML — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
 
+The generated HTML site can be previewed here: https://srid.github.io/ema-template/
+
 ## Getting Started
 
 To develop with full IDE support in Visual Studio Code, follow these steps:
