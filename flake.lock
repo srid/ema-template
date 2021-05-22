@@ -7,16 +7,16 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1621445822,
-        "narHash": "sha256-icDv50wWkwaPzxMxhSNhi6wSzk+V2zvVoxChk9NeiNo=",
+        "lastModified": 1621703964,
+        "narHash": "sha256-UR1c0YtvpjtZqk/IeBGdu5DCbatchBHzUVJg9LnVKX0=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "a90120faa9bc9398be0c1d8147290c4d2d9eaf91",
+        "rev": "141ed1022a5da27b44735bda3fb583ca595bc77a",
         "type": "github"
       },
       "original": {
         "owner": "srid",
-        "ref": "emanote-docs",
+        "ref": "master",
         "repo": "ema",
         "type": "github"
       }

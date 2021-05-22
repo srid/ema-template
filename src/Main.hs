@@ -159,31 +159,26 @@ modelDelete k model =
 -- | Once we have a "model" and "route" (as defined above), we should define the
 -- @Ema@ typeclass to tell Ema how to decode/encode our routes, as well as the
 -- list of routes to generate the static site with.
-instance Ema Model MarkdownRoute where
-  -- Convert a route to URL slugs
+instance Ema Model (Either FilePath MarkdownRoute) where
   encodeRoute = \case
-    MarkdownRoute ("index" :| []) -> mempty
-    MarkdownRoute paths -> toList paths
+    Left fp -> fp
+    Right (MarkdownRoute slugs) ->
+      toString $ T.intercalate "/" (Ema.unSlug <$> toList slugs) <> ".html"
 
-  -- Parse our route from URL slugs
-  --
-  -- For eg., /foo/bar maps to slugs ["foo", "bar"], which in our app gets
-  -- parsed as representing the route to /foo/bar.md.
-  decodeRoute = \case
-    (nonEmpty -> Nothing) ->
-      pure $ MarkdownRoute $ one "index"
-    (nonEmpty -> Just slugs) -> do
-      -- Heuristic to let requests to static files (eg: favicon.ico) to pass through
-      guard $ not (any (T.isInfixOf "." . Ema.unSlug) slugs)
-      pure $ MarkdownRoute slugs
+  decodeRoute _model fp = do
+    if "static/" `T.isPrefixOf` toText fp
+      then pure $ Left fp
+      else do
+        if null fp
+          then pure $ Right indexMarkdownRoute
+          else do
+            basePath <- T.stripSuffix ".html" (toText fp)
+            slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" basePath
+            pure $ Right $ MarkdownRoute slugs
 
   -- Which routes to generate when generating the static HTML for this site.
-  staticRoutes (Map.keys . modelDocs -> mdRoutes) =
-    mdRoutes
-
-  -- All static assets (relative to input directory) go here.
-  staticAssets _ =
-    ["static"]
+  allRoutes (Map.keys . modelDocs -> mdRoutes) =
+    [Left "static"] <> fmap Right mdRoutes
 
 -- ------------------------
 -- Main entry point
@@ -209,7 +204,7 @@ main =
     -- We use the FileSystem helper to directly "mount" our files on to the
     -- LVar.
     let pats = [((), "**/*.md")]
-    FileSystem.mountOnLVar "." pats model def $ \(concatMap snd -> fps) action ->
+    FileSystem.mountOnLVar "." pats [".*"] model def $ \(concatMap snd -> fps) action ->
       fmap (flip (foldl' $ flip ($))) . forM fps $ \fp -> case action of
         FileSystem.Update -> do
           mData <- readSource fp
@@ -236,8 +231,15 @@ newtype BadMarkdown = BadMarkdown Text
 -- Our site HTML
 -- ------------------------
 
-render :: Ema.CLI.Action -> Model -> MarkdownRoute -> LByteString
-render emaAction model r = do
+render :: Ema.CLI.Action -> Model -> Either FilePath MarkdownRoute -> Ema.Asset LByteString
+render act model = \case
+  Left fp ->
+    Ema.AssetStatic fp
+  Right r ->
+    Ema.AssetGenerated Ema.Html $ renderHtml act model r
+
+renderHtml :: Ema.CLI.Action -> Model -> MarkdownRoute -> LByteString
+renderHtml emaAction model r = do
   case modelLookup r model of
     Nothing ->
       -- In dev server mode, Ema will display the exceptions in the browser.
@@ -299,13 +301,17 @@ containerLayout ctype sidebar w = do
     H.div ! A.class_ "col-span-12 md:col-span-9" $ do
       w
 
+mdUrl :: Ema model (Either FilePath r) => r -> Text
+mdUrl r =
+  Ema.routeUrl $ Right @FilePath r
+
 bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml model r doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     -- Header row
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
-            H.a ! A.href (H.toValue $ Ema.routeUrl indexMarkdownRoute) $
+            H.a ! A.href (H.toValue $ mdUrl indexMarkdownRoute) $
               H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "static/logo.svg"
     containerLayout CHeader sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
@@ -323,7 +329,7 @@ bodyHtml model r doc = do
                 target <- mkMarkdownRoute $ toString url
                 -- Check that .md links are not broken
                 if modelMember target model
-                  then pure $ Ema.routeUrl target
+                  then pure $ mdUrl target
                   else throw $ BadRoute target
             )
       H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
@@ -357,7 +363,7 @@ renderSidebarNav model currentRoute = do
           go ([slug] <> parSlugs) children
     renderRoute c r = do
       let linkCls = if r == currentRoute then "text-yellow-600 font-bold" else ""
-      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ Ema.routeUrl r) $ H.toHtml $ lookupTitleForgiving model r
+      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ mdUrl r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs model r = do
@@ -369,7 +375,7 @@ renderBreadcrumbs model r = do
             forM_ crumbs $ \crumb ->
               H.li ! A.class_ "inline-flex items-center" $ do
                 H.a ! A.class_ "px-1 font-bold bg-yellow-500 text-gray-50 rounded"
-                  ! A.href (fromString . toString $ Ema.routeUrl crumb)
+                  ! A.href (fromString . toString $ mdUrl crumb)
                   $ H.text $ lookupTitleForgiving model crumb
                 rightArrow
             H.li ! A.class_ "inline-flex items-center text-gray-600" $ do
