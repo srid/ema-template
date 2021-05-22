@@ -256,7 +256,7 @@ headHtml emaAction r doc = do
       -- Since our URLs are all relative, and GitHub Pages uses a non-root base
       -- URL, we should specify it explicitly. Note that this is not necessay if
       -- you are using a CNAME.
-      H.base ! A.href "https://srid.github.io/ema-docs/"
+      H.base ! A.href "https://srid.github.io/ema-template/"
     _ ->
       H.base ! A.href "/"
   H.title $
