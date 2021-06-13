@@ -159,8 +159,11 @@ modelDelete k model =
 -- | Once we have a "model" and "route" (as defined above), we should define the
 -- @Ema@ typeclass to tell Ema how to decode/encode our routes, as well as the
 -- list of routes to generate the static site with.
+--
+-- We use `Either` to represent either a static file route or a Markdown
+-- generated route.
 instance Ema Model (Either FilePath MarkdownRoute) where
-  encodeRoute = \case
+  encodeRoute _model = \case
     Left fp -> fp
     Right (MarkdownRoute slugs) ->
       toString $ T.intercalate "/" (Ema.unSlug <$> toList slugs) <> ".html"
@@ -178,7 +181,8 @@ instance Ema Model (Either FilePath MarkdownRoute) where
 
   -- Which routes to generate when generating the static HTML for this site.
   allRoutes (Map.keys . modelDocs -> mdRoutes) =
-    [Left "static"] <> fmap Right mdRoutes
+    [Left "static"]
+      <> fmap Right mdRoutes
 
 -- ------------------------
 -- Main entry point
@@ -195,7 +199,7 @@ main =
   -- runEma handles the CLI and starts the dev server (or generate static site
   -- if `gen` argument is passed).  It is designed to work well with ghcid
   -- (which is what the bin/run script uses).
-  Ema.runEma render $ \model -> do
+  Ema.runEma render $ \_act model -> do
     -- This is the place where we can load and continue to modify our "model".
     -- You will use `LVar.set` and `LVar.modify` to modify the model.
     --
@@ -204,13 +208,15 @@ main =
     -- We use the FileSystem helper to directly "mount" our files on to the
     -- LVar.
     let pats = [((), "**/*.md")]
-    FileSystem.mountOnLVar "." pats [".*"] model def $ \(concatMap snd -> fps) action ->
-      fmap (flip (foldl' $ flip ($))) . forM fps $ \fp -> case action of
+        ignorePats = [".*"]
+    FileSystem.mountOnLVar "." pats ignorePats model def $ \(concatMap snd -> fps) action -> do
+      modelUpdates <- forM fps $ \fp -> case action of
         FileSystem.Update -> do
           mData <- readSource fp
           pure $ maybe id (uncurry modelInsert) mData
         FileSystem.Delete ->
           pure $ maybe id modelDelete $ mkMarkdownRoute fp
+      pure $ flip (foldl' $ flip ($)) modelUpdates
   where
     readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
     readSource fp =
@@ -301,9 +307,9 @@ containerLayout ctype sidebar w = do
     H.div ! A.class_ "col-span-12 md:col-span-9" $ do
       w
 
-mdUrl :: Ema model (Either FilePath r) => r -> Text
-mdUrl r =
-  Ema.routeUrl $ Right @FilePath r
+mdUrl :: Ema model (Either FilePath r) => model -> r -> Text
+mdUrl model r =
+  Ema.routeUrl model $ Right @FilePath r
 
 bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml model r doc = do
@@ -311,7 +317,7 @@ bodyHtml model r doc = do
     -- Header row
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
-            H.a ! A.href (H.toValue $ mdUrl indexMarkdownRoute) $
+            H.a ! A.href (H.toValue $ mdUrl model indexMarkdownRoute) $
               H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "static/logo.svg"
     containerLayout CHeader sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
@@ -329,7 +335,7 @@ bodyHtml model r doc = do
                 target <- mkMarkdownRoute $ toString url
                 -- Check that .md links are not broken
                 if modelMember target model
-                  then pure $ mdUrl target
+                  then pure $ mdUrl model target
                   else throw $ BadRoute target
             )
       H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
@@ -363,7 +369,7 @@ renderSidebarNav model currentRoute = do
           go ([slug] <> parSlugs) children
     renderRoute c r = do
       let linkCls = if r == currentRoute then "text-yellow-600 font-bold" else ""
-      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ mdUrl r) $ H.toHtml $ lookupTitleForgiving model r
+      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ mdUrl model r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs model r = do
@@ -375,7 +381,7 @@ renderBreadcrumbs model r = do
             forM_ crumbs $ \crumb ->
               H.li ! A.class_ "inline-flex items-center" $ do
                 H.a ! A.class_ "px-1 font-bold bg-yellow-500 text-gray-50 rounded"
-                  ! A.href (fromString . toString $ mdUrl crumb)
+                  ! A.href (fromString . toString $ mdUrl model crumb)
                   $ H.text $ lookupTitleForgiving model crumb
                 rightArrow
             H.li ! A.class_ "inline-flex items-center text-gray-600" $ do
