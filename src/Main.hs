@@ -3,13 +3,9 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 
--- | This code generates the site at https://ema.srid.ca/ - and as such it might
--- be a bit too complex example to begin with, unless you intend to create a
--- Markdown-based site.
---
--- For a simpler example, check out one of the following:
---   https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Clock.hs
---   https://github.com/srid/www.srid.ca/blob/master/src/Main.hs
+-- | This code generates a site based on Markdown files, rendering them using Pandoc.
+-- As such it might be a little too involved. Simpler examples can be found here,
+--   https://github.com/srid/ema/tree/master/src/Ema/Example
 module Main where
 
 import Control.Exception (throw)
@@ -42,8 +38,7 @@ import qualified Text.Pandoc.Walk as W
 
 -- | Represents the relative path to a source (.md) file under some directory.
 --
--- This will also be our site route type.  That is, `Ema.routeUrl (r ::
--- MarkdownRoute)` gives us the URL to the generated HTML for this markdown file.
+-- We will reuse this in our site route type to refer to the corresponding .html.
 --
 -- If you are using this repo as a template, you might want to use an ADT as
 -- route (eg: data Route = Index | About)
@@ -179,7 +174,7 @@ instance Ema Model (Either FilePath MarkdownRoute) where
             slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" basePath
             pure $ Right $ MarkdownRoute slugs
 
-  -- Which routes to generate when generating the static HTML for this site.
+  -- Routes to write when generating the static site.
   allRoutes (Map.keys . modelDocs -> mdRoutes) =
     [Left "static"]
       <> fmap Right mdRoutes
@@ -240,8 +235,11 @@ newtype BadMarkdown = BadMarkdown Text
 render :: Ema.CLI.Action -> Model -> Either FilePath MarkdownRoute -> Ema.Asset LByteString
 render act model = \case
   Left fp ->
+    -- This instructs ema to treat this route "as is" (ie. a static file; no generation)
+    -- The argument `fp` refers to the absolute path to the static file.
     Ema.AssetStatic fp
   Right r ->
+    -- Generate a Html route; hot-reload is enabled.
     Ema.AssetGenerated Ema.Html $ renderHtml act model r
 
 renderHtml :: Ema.CLI.Action -> Model -> MarkdownRoute -> LByteString
@@ -260,7 +258,7 @@ headHtml emaAction r doc = do
   case emaAction of
     Ema.CLI.Generate _ ->
       -- Since our URLs are all relative, and GitHub Pages uses a non-root base
-      -- URL, we should specify it explicitly. Note that this is not necessay if
+      -- URL, we should specify it explicitly. Note that this is not necessary if
       -- you are using a CNAME.
       H.base ! A.href "https://srid.github.io/ema-template/"
     _ ->
@@ -273,7 +271,7 @@ headHtml emaAction r doc = do
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
-  H.link ! A.rel "manifest" ! A.href "/manifest.json"
+  H.link ! A.rel "manifest" ! A.href "manifest.json"
   H.meta ! A.name "theme-color" ! A.content "#DB2777"
   unless (r == indexMarkdownRoute) prismJs
   where
