@@ -1,1 +1,1 @@
-See also [dir2](dir2.md)
+See also [dir1](dir1.md)
