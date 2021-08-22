@@ -22,7 +22,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 - This project uses [relude](https://github.com/kowainik/relude) as its prelude, as well as [Tailwind+Blaze](https://ema.srid.ca/guide/helpers/tailwind) as CSS utility and HTML DSL. Even though the author highly recommends them, you are of course free to swap them out for the library of your choice.
 - As a first step to using this template, 
   - change the project name in .cabal, flake.nix and hie.yaml files; then commit changes to Git.
-  - Change the `cname` in .github/workflows/publish.yaml, or remove it to publish to yourname.github.io
+      - To automate this, `mv ema-template.cabal myproject.cabal; nix run nixpkgs#sd -- ema-template myproject * */* .github/*/*`
 - Configuration:
   - To change the port, see file bin/run
   - To change the CLI arguments used by bin/run, see file .ghcid
