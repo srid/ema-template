@@ -204,14 +204,13 @@ main =
     -- LVar.
     let pats = [((), "**/*.md")]
         ignorePats = [".*"]
-    FileSystem.mountOnLVar "." pats ignorePats model def $ \(concatMap snd -> fps) action -> do
-      modelUpdates <- forM fps $ \fp -> case action of
-        FileSystem.Update -> do
+    FileSystem.mountOnLVar "." pats ignorePats model def $ \() fp action -> do
+      case action of
+        FileSystem.Update () -> do
           mData <- readSource fp
           pure $ maybe id (uncurry modelInsert) mData
         FileSystem.Delete ->
           pure $ maybe id modelDelete $ mkMarkdownRoute fp
-      pure $ flip (foldl' $ flip ($)) modelUpdates
   where
     readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
     readSource fp =
