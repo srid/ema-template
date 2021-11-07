@@ -204,9 +204,9 @@ main =
     -- LVar.
     let pats = [((), "**/*.md")]
         ignorePats = [".*"]
-    FileSystem.mountOnLVar "." pats ignorePats model def $ \() fp action -> do
+    void . FileSystem.mountOnLVar "." pats ignorePats model def $ \() fp action -> do
       case action of
-        FileSystem.Update () -> do
+        FileSystem.Refresh _ () -> do
           mData <- readSource fp
           pure $ maybe id (uncurry modelInsert) mData
         FileSystem.Delete ->
