@@ -113,12 +113,12 @@ instance Default Model where
 data Meta = Meta
   { -- | Indicates the order of the Markdown file in sidebar tree, relative to
     -- its siblings.
-    order :: Int
+    order :: Maybe Int
   }
   deriving (Eq, Show, Generic, FromJSON)
 
 instance Default Meta where
-  def = Meta maxBound
+  def = Meta Nothing
 
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
