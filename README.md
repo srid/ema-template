@@ -6,10 +6,11 @@ The generated HTML site can be previewed here: https://srid.github.io/ema-templa
 
 ## Getting Started
 
+### Using nix
 To develop with full IDE support in Visual Studio Code, follow these steps:
 
 - [Install Nix](https://nixos.org/download.html) & [enable Flakes](https://nixos.wiki/wiki/Flakes)
-- Run `nix-shell --run haskell-language-server` to sanity check your environment 
+- Run `nix-shell --run haskell-language-server` to sanity check your environment
 - Open the repository [as single-folder workspace](https://code.visualstudio.com/docs/editor/workspaces#_singlefolder-workspaces) in Visual Studio Code
     - Install the recommended extensions
     - <kbd>Ctrl+Shift+P</kbd> to run command "Nix-Env: Select Environment" and select `shell.nix`. The extension will ask you to reload VSCode at the end.
@@ -17,10 +18,14 @@ To develop with full IDE support in Visual Studio Code, follow these steps:
 
 All but the final step need to be done only once. Check [the Ema tutorial](https://ema.srid.ca/start/tutorial) next.
 
+### Using cabal-install/ghcid
+- The code can be built with `cabal build`
+- But you probably want to run `ghcid` to get continuous feedback on your changes
+
 ## Note
 
 - This project uses [relude](https://github.com/kowainik/relude) as its prelude, as well as [Tailwind+Blaze](https://ema.srid.ca/guide/helpers/tailwind) as CSS utility and HTML DSL. Even though the author highly recommends them, you are of course free to swap them out for the library of your choice.
-- As a first step to using this template, 
+- As a first step to using this template,
   - change the project name in .cabal, flake.nix and hie.yaml files; then commit changes to Git.
       - To automate this, `mv ema-template.cabal myproject.cabal; nix run nixpkgs#sd -- ema-template myproject * */* .github/*/*`
 - Configuration:
