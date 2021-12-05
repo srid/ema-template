@@ -8,6 +8,8 @@ The generated HTML site can be previewed here: https://srid.github.io/ema-templa
 
 To develop with full IDE support in Visual Studio Code, follow these steps:
 
+(Note that plain `cabal` also works. Nix is not strictly required. For best experience, install Ghcid and run `ghcid -T :main` instead of `bin/run`)
+
 - [Install Nix](https://nixos.org/download.html) & [enable Flakes](https://nixos.wiki/wiki/Flakes)
 - Run `nix-shell --run haskell-language-server` to sanity check your environment 
 - Open the repository [as single-folder workspace](https://code.visualstudio.com/docs/editor/workspaces#_singlefolder-workspaces) in Visual Studio Code
