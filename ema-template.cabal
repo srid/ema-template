@@ -30,7 +30,7 @@ executable ema-template
     , containers
     , data-default
     , directory
-    , ema                 >=0.2
+    , ema                 >=0.3
     , filepath
     , lvar
     , monad-logger
