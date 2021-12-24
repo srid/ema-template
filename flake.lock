@@ -8,11 +8,11 @@
         "unionmount": "unionmount"
       },
       "locked": {
-        "lastModified": 1639093048,
-        "narHash": "sha256-MiNn1bQM9zWU5KPpTDTP7dwi/yvK3S2BYPvCMD7eg+w=",
+        "lastModified": 1639930986,
+        "narHash": "sha256-2p963zKorg7yjdJ2wIBXJCdqsRnA+fx/k1wPzrfiCco=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "cf511420d164b8e663314a51d03749d93d347c84",
+        "rev": "9e2743c0a38e51ba4a67cf4ad0f82c2a7f09b82a",
         "type": "github"
       },
       "original": {
@@ -86,17 +86,17 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1638553308,
-        "narHash": "sha256-qlHRqp+7gJj+LUNfEl01M9xHQoX2Bx4e1ha/nssXSo8=",
+        "lastModified": 1639895371,
+        "narHash": "sha256-eAUPDd7YODbYbQ+sya3vS3TH9SavHV/2o46FZCqRRsE=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "2df15ba83d0510a56f2583fd3481723835acb5a1",
+        "rev": "3e4c1337b93152e42f53c8fcd2e0d9077c6523b1",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "2df15ba83d0510a56f2583fd3481723835acb5a1",
+        "rev": "3e4c1337b93152e42f53c8fcd2e0d9077c6523b1",
         "type": "github"
       }
     },
