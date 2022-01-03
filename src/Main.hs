@@ -422,6 +422,9 @@ rewriteLinks f =
 -- Note that we hardcode tailwind classes, because pandoc AST is not flexible
 -- enough to provide attrs for all inlines/blocks. So we can't rely on Walk to
 -- transform it.
+--
+-- This will go away in future; see 
+-- https://github.com/srid/ema-template/issues/15
 
 renderPandoc :: Pandoc -> H.Html
 renderPandoc (Pandoc _meta blocks) =
