@@ -2,6 +2,7 @@
   description = "Ema documentation source";
   inputs = {
     ema.url = "github:srid/ema/master";
+    tailwind-haskell.url = "github:srid/tailwind-haskell";
     # Use the nixpkgs used by the pinned ema.
     nixpkgs.follows = "ema/nixpkgs";
 
@@ -17,6 +18,7 @@
         name = "ema-template";
         overlays = [ ];
         pkgs = import nixpkgs { inherit system overlays; config.allowBroken = true; };
+        tailwind-haskell = inputs.tailwind-haskell.defaultPackage.${system};
         # Based on https://github.com/input-output-hk/daedalus/blob/develop/yarn2nix.nix#L58-L71
         filter = name: type:
           let
@@ -53,6 +55,7 @@
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
               ema = disableCabalFlag inputs.ema.defaultPackage.${system} "with-examples";
+              tailwind = tailwind-haskell;
               # lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
             };
             modifier = drv:
@@ -66,6 +69,8 @@
                   haskell-language-server
                   ormolu
                   pkgs.nixpkgs-fmt
+                  tailwind-haskell
+                  pkgs.foreman
                 ]);
           };
       in

@@ -1,14 +1,12 @@
 # Ema Template
 
-This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with sidebar from a directory of Markdown files using Pandoc & Blaze HTML — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
+This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with sidebar from a directory of Markdown files using Pandoc, Blaze HTML & TailwindCSS 3.x — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
 
 The generated HTML site can be previewed here: https://srid.github.io/ema-template/
 
 ## Getting Started
 
 To develop with full IDE support in Visual Studio Code, follow these steps:
-
-(Note that plain `cabal` also works. Nix is not strictly required. For best experience, install Ghcid and run `ghcid -T :main` instead of `bin/run`)
 
 - [Install Nix](https://nixos.org/download.html) & [enable Flakes](https://nixos.wiki/wiki/Flakes)
 - Run `nix-shell --run haskell-language-server` to sanity check your environment 
@@ -32,3 +30,13 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
   - To add/remove Haskell dependencies, see the .cabal file. If a dependency is unavailable in nixpkgs, you can override it (to point to say a Git repo) in the `overrides` attribute of flake.nix. You can imitate the manner in which the `ema` (or `lvar`) package itself is overriden.
 - To generate static site, run: `nix build; mkdir ./output && (cd ./content  && ../result/bin/ema-template gen $(pwd)/output)`
   - You might want to change or remove the `<base>` tag in `Main.hs` depending where you will be deploying the site.
+
+## Non-Nix workflow
+
+In order to use this repository without Nix, such as with plain Cabal or Stack, you need to have the following installed manually:
+
+- ghcid (used by `bin/run-haskell` which `./Procfile` invokes)
+- https://github.com/srid/tailwind-haskell (depends on tailwincss CLI -- the npm package, along with official plugins)
+- [foreman](http://ddollar.github.io/foreman/) (or one of its rewrites)
+
+Adjust `./Procfile`, and use `foreman start` to run it. 

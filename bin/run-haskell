@@ -6,4 +6,4 @@ export PORT=9001
 # point, with the specified args.
 #
 # If you change ./.ghcid, ghcid will automatically reload.
-exec nix develop -c foreman start
+ghcid
