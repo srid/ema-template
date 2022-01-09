@@ -322,7 +322,7 @@ bodyHtml model r doc = do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
     -- Main row
-    containerLayout CBody (H.div ! A.class_ "bg-yellow-50 rounded pt-1 pb-2" $ renderSidebarNav model r) $ do
+    containerLayout CBody (H.div ! A.class_ "bg-indigo-100 shadow-lg shadow-indigo-300/50 pt-1 pb-2" $ renderSidebarNav model r) $ do
       renderBreadcrumbs model r
       renderPandoc $
         doc
@@ -520,8 +520,8 @@ rpInline = \case
   B.Link attr is (url, title) -> do
     let (cls, target) =
           if "://" `T.isInfixOf` url
-            then ("text-yellow-600 hover:underline", targetBlank)
-            else ("text-yellow-600 font-bold hover:bg-pink-50", mempty)
+            then ("underline decoration-indigo-400 decoration-wavy decoration-1 hover:decoration-2", targetBlank)
+            else ("underline decoration-indigo-700 decoration-wavy decoration-2 hover:decoration-4", mempty)
     H.a
       ! A.class_ cls
       ! A.href (H.textValue url)
