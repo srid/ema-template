@@ -8,11 +8,11 @@
         "pre-commit-hooks": "pre-commit-hooks"
       },
       "locked": {
-        "lastModified": 1641143838,
-        "narHash": "sha256-cdas/83wVFJvp8L5DPv1rm/5TNGVT36LyPpowCbkNoA=",
+        "lastModified": 1641754465,
+        "narHash": "sha256-uzLIRPyOCCdrJ0IHA0kFjAMSg8FaNQGxxZyFtJC+jXE=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "d773da4a13dbc568d3c82824b553d524d17d188f",
+        "rev": "3428c0175dc6d088ff0bc3f00beaf8b440900243",
         "type": "github"
       },
       "original": {
@@ -101,17 +101,17 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1641104204,
-        "narHash": "sha256-mCjEJNKaeS/BhQQFNSxHfA0/XtujbTAAJpustt1hIxI=",
+        "lastModified": 1641521701,
+        "narHash": "sha256-IuW+4EqqKjNdJ4yO0Qr8k63OkyV1TaF5vsrZzU3GCfI=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "28d58b979250ef33f049fe1c74daa50b7515126b",
+        "rev": "d77bbfcbb650d9c219ca3286e1efb707b922d7c2",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "28d58b979250ef33f049fe1c74daa50b7515126b",
+        "rev": "d77bbfcbb650d9c219ca3286e1efb707b922d7c2",
         "type": "github"
       }
     },

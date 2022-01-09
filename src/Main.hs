@@ -14,6 +14,7 @@ import Data.Aeson (FromJSON)
 import Data.Default (Default (..))
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
+import Data.Some (Some)
 import qualified Data.Text as T
 import Data.Tree (Tree (Node))
 import Ema (Ema (..), Slug)
@@ -194,23 +195,24 @@ main =
   -- runEma handles the CLI and starts the dev server (or generate static site
   -- if `gen` argument is passed).  It is designed to work well with ghcid
   -- (which is what the bin/run script uses).
-  Ema.runEma render $ \_act model -> do
-    -- This is the place where we can load and continue to modify our "model".
-    -- You will use `LVar.set` and `LVar.modify` to modify the model.
-    --
-    -- It is a run in a (long-running) thread of its own.
-    --
-    -- We use the FileSystem helper to directly "mount" our files on to the
-    -- LVar.
-    let pats = [((), "**/*.md")]
-        ignorePats = [".*"]
-    void . FileSystem.mountOnLVar "." pats ignorePats model def $ \() fp action -> do
-      case action of
-        FileSystem.Refresh _ () -> do
-          mData <- readSource fp
-          pure $ maybe id (uncurry modelInsert) mData
-        FileSystem.Delete ->
-          pure $ maybe id modelDelete $ mkMarkdownRoute fp
+  void $
+    Ema.runEma render $ \_act model -> do
+      -- This is the place where we can load and continue to modify our "model".
+      -- You will use `LVar.set` and `LVar.modify` to modify the model.
+      --
+      -- It is a run in a (long-running) thread of its own.
+      --
+      -- We use the FileSystem helper to directly "mount" our files on to the
+      -- LVar.
+      let pats = [((), "**/*.md")]
+          ignorePats = [".*"]
+      void . FileSystem.mountOnLVar "." pats ignorePats model def $ \() fp action -> do
+        case action of
+          FileSystem.Refresh _ () -> do
+            mData <- readSource fp
+            pure $ maybe id (uncurry modelInsert) mData
+          FileSystem.Delete ->
+            pure $ maybe id modelDelete $ mkMarkdownRoute fp
   where
     readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
     readSource fp =
@@ -231,7 +233,7 @@ newtype BadMarkdown = BadMarkdown Text
 -- Our site HTML
 -- ------------------------
 
-render :: Ema.CLI.Action -> Model -> Either FilePath MarkdownRoute -> Ema.Asset LByteString
+render :: Some Ema.CLI.Action -> Model -> Either FilePath MarkdownRoute -> Ema.Asset LByteString
 render act model = \case
   Left fp ->
     -- This instructs ema to treat this route "as is" (ie. a static file; no generation)
@@ -241,7 +243,7 @@ render act model = \case
     -- Generate a Html route; hot-reload is enabled.
     Ema.AssetGenerated Ema.Html $ renderHtml act model r
 
-renderHtml :: Ema.CLI.Action -> Model -> MarkdownRoute -> LByteString
+renderHtml :: Some Ema.CLI.Action -> Model -> MarkdownRoute -> LByteString
 renderHtml emaAction model r = do
   case modelLookup r model of
     Nothing ->
@@ -252,16 +254,14 @@ renderHtml emaAction model r = do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
       Tailwind.layout emaAction (headHtml emaAction r doc) (bodyHtml model r doc)
 
-headHtml :: Ema.CLI.Action -> MarkdownRoute -> Pandoc -> H.Html
+headHtml :: Some Ema.CLI.Action -> MarkdownRoute -> Pandoc -> H.Html
 headHtml emaAction r doc = do
-  case emaAction of
-    Ema.CLI.Generate _ ->
-      -- Since our URLs are all relative, and GitHub Pages uses a non-root base
-      -- URL, we should specify it explicitly. Note that this is not necessary if
-      -- you are using a CNAME.
+  if Ema.CLI.isLiveServer emaAction
+    then H.base ! A.href "/"
+    else -- Since our URLs are all relative, and GitHub Pages uses a non-root base
+    -- URL, we should specify it explicitly. Note that this is not necessary if
+    -- you are using a CNAME.
       H.base ! A.href "https://srid.github.io/ema-template/"
-    _ ->
-      H.base ! A.href "/"
   H.title $
     H.text $
       if r == indexMarkdownRoute
@@ -423,7 +423,7 @@ rewriteLinks f =
 -- enough to provide attrs for all inlines/blocks. So we can't rely on Walk to
 -- transform it.
 --
--- This will go away in future; see 
+-- This will go away in future; see
 -- https://github.com/srid/ema-template/issues/15
 
 renderPandoc :: Pandoc -> H.Html

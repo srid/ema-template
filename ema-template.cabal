@@ -29,6 +29,7 @@ executable ema-template
     , blaze-markup
     , containers
     , data-default
+    , dependent-sum
     , directory
     , ema                 >=0.3
     , filepath
@@ -38,6 +39,7 @@ executable ema-template
     , pandoc-types
     , relude
     , shower
+    , some
     , tagged
     , text
     , time
