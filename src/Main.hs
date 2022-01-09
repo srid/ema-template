@@ -252,7 +252,8 @@ renderHtml emaAction model r = do
       throw $ BadRoute r
     Just doc -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      Tailwind.layout emaAction (headHtml emaAction r doc) (bodyHtml model r doc)
+      Tailwind.layoutWith "en" "UTF-8" mempty (headHtml emaAction r doc) $
+        bodyHtml model r doc
 
 headHtml :: Some Ema.CLI.Action -> MarkdownRoute -> Pandoc -> H.Html
 headHtml emaAction r doc = do
@@ -269,6 +270,7 @@ headHtml emaAction r doc = do
         else lookupTitle doc r <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
+  H.link ! A.rel "stylesheet" ! A.href "static/tailwind.css"
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
   H.link ! A.rel "manifest" ! A.href "manifest.json"
   H.meta ! A.name "theme-color" ! A.content "#DB2777"
