@@ -36,6 +36,7 @@ executable ema-template
     , lvar
     , monad-logger
     , neat-interpolation
+    , pandoc
     , pandoc-types
     , relude
     , shower
