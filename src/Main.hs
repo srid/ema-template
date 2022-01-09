@@ -17,6 +17,7 @@ import qualified Data.Map.Strict as Map
 import Data.Some (Some)
 import qualified Data.Text as T
 import Data.Tree (Tree (Node))
+import qualified Data.UUID.V4 as UUID
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
@@ -24,6 +25,7 @@ import qualified Ema.Helper.Blaze as EB
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Markdown as Markdown
 import qualified Ema.Helper.PathTree as PathTree
+import GHC.IO.Unsafe (unsafePerformIO)
 import NeatInterpolation (text)
 import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
@@ -256,6 +258,14 @@ renderHtml emaAction model r = do
       EB.layoutWith "en" "UTF-8" (headHtml emaAction r doc) $
         bodyHtml model r doc
 
+tailwindCssUrl :: (Semigroup a, IsString a) => Some Ema.CLI.Action -> a
+tailwindCssUrl emaAction =
+  "static/tailwind.css"
+    <> if Ema.CLI.isLiveServer emaAction
+      then -- Force the browser to reload the CSS
+        "?" <> show (unsafePerformIO UUID.nextRandom)
+      else ""
+
 headHtml :: Some Ema.CLI.Action -> MarkdownRoute -> Pandoc -> H.Html
 headHtml emaAction r doc = do
   if Ema.CLI.isLiveServer emaAction
@@ -271,7 +281,7 @@ headHtml emaAction r doc = do
         else lookupTitle doc r <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
-  H.link ! A.rel "stylesheet" ! A.href "static/tailwind.css"
+  H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl emaAction)
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
   H.link ! A.rel "manifest" ! A.href "manifest.json"
   H.meta ! A.name "theme-color" ! A.content "#DB2777"

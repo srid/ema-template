@@ -45,6 +45,7 @@ executable ema-template
     , text
     , time
     , unliftio
+    , uuid
 
   mixins:
     base hiding (Prelude),
