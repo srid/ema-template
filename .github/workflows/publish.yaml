@@ -22,7 +22,7 @@ jobs:
         run: |
           mkdir ./output
           export TARGET=$(pwd)/output
-          nix develop -c tailwind-run -- 'src/**/*.hs' --minify --output=content/static/tailwind.css
+          nix develop -c tailwind-run -- --minify -o content/static/tailwind.css 'src/**/*.hs' 
           cd ./content
           ../result/bin/ema-template gen $TARGET
       - name: Deploy to gh-pages 🚀

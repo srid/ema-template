@@ -1,6 +1,6 @@
 # Ema Template
 
-This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with sidebar from a directory of Markdown files using Pandoc & Blaze HTML — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
+This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with sidebar from a directory of Markdown files using Pandoc, Blaze HTML & TailwindCSS 3.x — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
 
 The generated HTML site can be previewed here: https://srid.github.io/ema-template/
 
@@ -33,7 +33,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 
 ## Non-Nix workflow
 
-In order to use this repository without Nix, such as with plain Cabal or Stack, you must hae the following installed manually:
+In order to use this repository without Nix, such as with plain Cabal or Stack, you need to have the following installed manually:
 
 - ghcid (used by `bin/run-haskell` which `./Procfile` invokes)
 - https://github.com/srid/tailwind-haskell (depends on tailwincss CLI -- the npm package, along with official plugins)

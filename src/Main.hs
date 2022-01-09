@@ -20,10 +20,10 @@ import Data.Tree (Tree (Node))
 import Ema (Ema (..), Slug)
 import qualified Ema
 import qualified Ema.CLI
+import qualified Ema.Helper.Blaze as EB
 import qualified Ema.Helper.FileSystem as FileSystem
 import qualified Ema.Helper.Markdown as Markdown
 import qualified Ema.Helper.PathTree as PathTree
-import qualified Ema.Helper.Tailwind as Tailwind
 import NeatInterpolation (text)
 import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
@@ -253,7 +253,7 @@ renderHtml emaAction model r = do
       throw $ BadRoute r
     Just doc -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      Tailwind.layoutWith "en" "UTF-8" mempty (headHtml emaAction r doc) $
+      EB.layoutWith "en" "UTF-8" (headHtml emaAction r doc) $
         bodyHtml model r doc
 
 headHtml :: Some Ema.CLI.Action -> MarkdownRoute -> Pandoc -> H.Html
