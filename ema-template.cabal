@@ -31,7 +31,7 @@ executable ema-template
     , data-default
     , dependent-sum
     , directory
-    , ema                 >=0.3
+    , ema                 >=0.4
     , filepath
     , lvar
     , monad-logger

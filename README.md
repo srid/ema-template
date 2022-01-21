@@ -24,7 +24,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
   - change the project name in .cabal, flake.nix and hie.yaml files; then commit changes to Git.
       - To automate this, `mv ema-template.cabal myproject.cabal; nix run nixpkgs#sd -- ema-template myproject * */* .github/*/*`
 - Configuration:
-  - To change the port, see file bin/run
+  - To change the port, see `./.ghcid`
   - To change the CLI arguments used by bin/run, see file .ghcid
   - To update Ema to latest Git revision, run `nix flake lock --update-input ema`
   - To add/remove Haskell dependencies, see the .cabal file. If a dependency is unavailable in nixpkgs, you can override it (to point to say a Git repo) in the `overrides` attribute of flake.nix. You can imitate the manner in which the `ema` (or `lvar`) package itself is overriden.

@@ -1,1 +1,1 @@
---warnings -T "System.Directory.withCurrentDirectory \"content\" Main.main"
+--warnings -T "System.Directory.withCurrentDirectory \"content\" Main.main" --setup ":set args run --port=9001"
