@@ -17,6 +17,7 @@ import qualified Data.Map.Strict as Map
 import Data.Some (Some)
 import qualified Data.Text as T
 import Data.Tree (Tree (Node))
+import Data.UUID (UUID)
 import qualified Data.UUID.V4 as UUID
 import Ema (Ema (..), Slug)
 import qualified Ema
@@ -107,12 +108,15 @@ markdownRouteInits (MarkdownRoute (slug :| rest')) =
 -- It contains the list of all markdown files, parsed as Pandoc AST.
 data Model = Model
   { modelDocs :: Map MarkdownRoute (Meta, Pandoc),
-    modelNav :: [Tree Slug]
+    modelNav :: [Tree Slug],
+    -- | The ID is used to make the CSS url, so we are not caching stale
+    -- Tailwind
+    modelId :: UUID
   }
   deriving (Eq, Show)
 
-instance Default Model where
-  def = Model mempty mempty
+emptyModel :: IO Model
+emptyModel = Model mempty mempty <$> UUID.nextRandom
 
 data Meta = Meta
   { -- | Indicates the order of the Markdown file in sidebar tree, relative to
@@ -200,6 +204,7 @@ main =
   -- (which is what the bin/run script uses).
   void $
     Ema.runEma render $ \_act model -> do
+      model0 <- liftIO emptyModel
       -- This is the place where we can load and continue to modify our "model".
       -- You will use `LVar.set` and `LVar.modify` to modify the model.
       --
@@ -209,7 +214,7 @@ main =
       -- LVar.
       let pats = [((), "**/*.md")]
           ignorePats = [".*"]
-      void . FileSystem.mountOnLVar "." pats ignorePats model def $ \() fp action -> do
+      void . FileSystem.mountOnLVar "." pats ignorePats model model0 $ \() fp action -> do
         case action of
           FileSystem.Refresh _ () -> do
             mData <- readSource fp
@@ -255,19 +260,19 @@ renderHtml emaAction model r = do
       throw $ BadRoute r
     Just doc -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      EB.layoutWith "en" "UTF-8" (headHtml emaAction r doc) $
+      EB.layoutWith "en" "UTF-8" (headHtml emaAction model r doc) $
         bodyHtml model r doc
 
-tailwindCssUrl :: (Semigroup a, IsString a) => Some Ema.CLI.Action -> a
-tailwindCssUrl emaAction =
+tailwindCssUrl :: (Semigroup a, IsString a) => Some Ema.CLI.Action -> Model -> a
+tailwindCssUrl emaAction model =
   "static/tailwind.css"
     <> if Ema.CLI.isLiveServer emaAction
       then -- Force the browser to reload the CSS
-        "?" <> show (unsafePerformIO UUID.nextRandom)
+        "?" <> show (modelId model)
       else ""
 
-headHtml :: Some Ema.CLI.Action -> MarkdownRoute -> Pandoc -> H.Html
-headHtml emaAction r doc = do
+headHtml :: Some Ema.CLI.Action -> Model -> MarkdownRoute -> Pandoc -> H.Html
+headHtml emaAction model r doc = do
   if Ema.CLI.isLiveServer emaAction
     then H.base ! A.href "/"
     else -- Since our URLs are all relative, and GitHub Pages uses a non-root base
@@ -281,7 +286,7 @@ headHtml emaAction r doc = do
         else lookupTitle doc r <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
-  H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl emaAction)
+  H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl emaAction model)
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
   H.link ! A.rel "manifest" ! A.href "manifest.json"
   H.meta ! A.name "theme-color" ! A.content "#DB2777"
