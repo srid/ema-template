@@ -1,7 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TypeApplications #-}
 
 -- | This code generates a site based on Markdown files, rendering them using Pandoc.
 -- As such it might be a little too involved. Simpler examples can be found here,
@@ -12,30 +10,30 @@ import Control.Exception (throw)
 import Control.Monad.Logger
 import Data.Aeson (FromJSON)
 import Data.Default (Default (..))
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Map.Strict as Map
+import Data.List.NonEmpty qualified as NE
+import Data.Map.Strict qualified as Map
 import Data.Some (Some)
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Data.Tree (Tree (Node))
 import Data.UUID (UUID)
-import qualified Data.UUID.V4 as UUID
+import Data.UUID.V4 qualified as UUID
 import Ema (Ema (..), Slug)
-import qualified Ema
-import qualified Ema.CLI
-import qualified Ema.Helper.Blaze as EB
-import qualified Ema.Helper.FileSystem as FileSystem
-import qualified Ema.Helper.Markdown as Markdown
-import qualified Ema.Helper.PathTree as PathTree
-import GHC.IO.Unsafe (unsafePerformIO)
+import Ema qualified
+import Ema.CLI qualified
+import Ema.Helper.Blaze qualified as EB
+import Ema.Helper.FileSystem qualified as FileSystem
+import Ema.Helper.Markdown qualified as Markdown
+import Ema.Helper.PathTree qualified as PathTree
 import NeatInterpolation (text)
+import Shower qualified
 import System.FilePath (splitExtension, splitPath)
 import Text.Blaze.Html5 ((!))
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
-import qualified Text.Pandoc as Pandoc
-import qualified Text.Pandoc.Builder as B
+import Text.Blaze.Html5 qualified as H
+import Text.Blaze.Html5.Attributes qualified as A
+import Text.Pandoc qualified as Pandoc
+import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
-import qualified Text.Pandoc.Walk as W
+import Text.Pandoc.Walk qualified as W
 
 -- ------------------------
 -- Our site route
@@ -48,10 +46,11 @@ import qualified Text.Pandoc.Walk as W
 -- If you are using this repo as a template, you might want to use an ADT as
 -- route (eg: data Route = Index | About)
 newtype MarkdownRoute = MarkdownRoute {unMarkdownRoute :: NonEmpty Slug}
-  deriving (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show)
 
 newtype BadRoute = BadRoute MarkdownRoute
-  deriving (Show, Exception)
+  deriving stock (Show)
+  deriving anyclass (Exception)
 
 -- | Represents the top-level index.md
 indexMarkdownRoute :: MarkdownRoute
@@ -113,7 +112,7 @@ data Model = Model
     -- Tailwind
     modelId :: UUID
   }
-  deriving (Eq, Show)
+  deriving stock (Eq, Show)
 
 emptyModel :: IO Model
 emptyModel = Model mempty mempty <$> UUID.nextRandom
@@ -123,18 +122,23 @@ data Meta = Meta
     -- its siblings.
     order :: Maybe Int
   }
-  deriving (Eq, Show, Generic, FromJSON)
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (FromJSON)
 
 instance Default Meta where
   def = Meta Nothing
 
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
-  fmap snd . Map.lookup k . modelDocs
+  fmap snd . modelLookup' k
 
 modelLookupMeta :: MarkdownRoute -> Model -> Meta
 modelLookupMeta k =
-  maybe def fst . Map.lookup k . modelDocs
+  maybe def fst . modelLookup' k
+
+modelLookup' :: MarkdownRoute -> Model -> Maybe (Meta, Pandoc)
+modelLookup' k =
+  Map.lookup k . modelDocs
 
 modelMember :: MarkdownRoute -> Model -> Bool
 modelMember k =
@@ -235,7 +239,8 @@ main =
           )
 
 newtype BadMarkdown = BadMarkdown Text
-  deriving (Show, Exception)
+  deriving stock (Show)
+  deriving anyclass (Exception)
 
 -- ------------------------
 -- Our site HTML
@@ -253,15 +258,15 @@ render act model = \case
 
 renderHtml :: Some Ema.CLI.Action -> Model -> MarkdownRoute -> LByteString
 renderHtml emaAction model r = do
-  case modelLookup r model of
+  case modelLookup' r model of
     Nothing ->
       -- In dev server mode, Ema will display the exceptions in the browser.
       -- In static generation mode, they will cause the generation to crash.
       throw $ BadRoute r
-    Just doc -> do
+    Just (meta, doc) -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
       EB.layoutWith "en" "UTF-8" (headHtml emaAction model r doc) $
-        bodyHtml model r doc
+        bodyHtml model r meta doc
 
 tailwindCssUrl :: (Semigroup a, IsString a) => Some Ema.CLI.Action -> Model -> a
 tailwindCssUrl emaAction model =
@@ -309,7 +314,7 @@ data ContainerType
     CHeader
   | -- | The row representing the main part of the site. Sidebar lives here, as well as <main>
     CBody
-  deriving (Eq, Show)
+  deriving stock (Eq, Show)
 
 containerLayout :: ContainerType -> H.Html -> H.Html -> H.Html
 containerLayout ctype sidebar w = do
@@ -326,8 +331,8 @@ mdUrl :: Ema model (Either FilePath r) => model -> r -> Text
 mdUrl model r =
   Ema.routeUrl model $ Right @FilePath r
 
-bodyHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
-bodyHtml model r doc = do
+bodyHtml :: Model -> MarkdownRoute -> Meta -> Pandoc -> H.Html
+bodyHtml model r meta doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     -- Header row
     let sidebarLogo =
@@ -353,6 +358,9 @@ bodyHtml model r doc = do
                   then pure $ mdUrl model target
                   else throw $ BadRoute target
             )
+      H.div ! A.class_ "text-xs text-gray-400 mt-4" $ do
+        -- Just for debuggging
+        H.toHtml $ Shower.shower meta
       H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
         let editUrl = fromString $ "https://github.com/srid/ema-template/edit/master/content/" <> markdownRouteSourcePath r
         H.a ! A.href editUrl ! A.title "Edit this page on GitHub" $ editIcon
