@@ -36,7 +36,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 In order to use this repository without Nix, such as with plain Cabal or Stack, you need to have the following installed manually:
 
 - ghcid (used by `bin/run-haskell` which `./Procfile` invokes)
-- https://github.com/srid/tailwind-haskell (depends on tailwincss CLI -- the npm package, along with official plugins)
+- [tailwind runner](https://hackage.haskell.org/package/tailwind) along with [tailwind CLI](https://tailwindcss.com/docs/installation)
 - [foreman](http://ddollar.github.io/foreman/) (or one of its rewrites)
 
-Adjust `./Procfile`, and use `foreman start` to run it. 
+Once all the above are installed, run `foreman start` to start the Ema live server.

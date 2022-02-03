@@ -2,8 +2,8 @@
 {-# LANGUAGE QuasiQuotes #-}
 
 -- | This code generates a site based on Markdown files, rendering them using Pandoc.
--- As such it might be a little too involved. Simpler examples can be found here,
---   https://github.com/srid/ema/tree/master/src/Ema/Example
+-- You probably want to replace it with this simpler example:
+--   https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Basic.hs
 module Main where
 
 import Control.Exception (throw)

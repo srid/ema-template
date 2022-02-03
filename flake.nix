@@ -2,7 +2,7 @@
   description = "Ema documentation source";
   inputs = {
     ema.url = "github:srid/ema/master";
-    tailwind-haskell.url = "github:srid/tailwind-haskell";
+    tailwind-haskell.url = "github:srid/tailwind-haskell/master";
     # Use the nixpkgs used by the pinned ema.
     nixpkgs.follows = "ema/nixpkgs";
     flake-utils.follows = "ema/flake-utils";
