@@ -32,11 +32,11 @@
         "url-slug": "url-slug"
       },
       "locked": {
-        "lastModified": 1644080140,
-        "narHash": "sha256-pZxut7zdFcSMdPl4XfMcJcawUZE1QCjoMslRZuBjwKI=",
+        "lastModified": 1644080754,
+        "narHash": "sha256-iKUKaVYzJ4LkRgyldJGiXlddsnluxZt+IB1o7vvn5Mo=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "bd0d1ba8fd4ca1a6debc613c0242827f7c0470f2",
+        "rev": "1dbae614298679db1121f9e23e387c29638ee16e",
         "type": "github"
       },
       "original": {
