@@ -7,6 +7,9 @@
     nixpkgs.follows = "ema/nixpkgs";
     flake-utils.follows = "ema/flake-utils";
     flake-compat.follows = "ema/flake-compat";
+
+    pathtree.url = "github:srid/pathtree";
+    pathtree.inputs.nixpkgs.follows = "ema/nixpkgs";
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" ] (system:
@@ -52,6 +55,7 @@
             overrides = self: super: with pkgs.haskell.lib; {
               ema = disableCabalFlag inputs.ema.defaultPackage.${system} "with-examples";
               tailwind = tailwind-haskell;
+              pathtree = inputs.pathtree.defaultPackage.${system};
               # lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
             };
             modifier = drv:

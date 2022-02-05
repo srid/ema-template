@@ -15,6 +15,7 @@ import Data.Map.Strict qualified as Map
 import Data.Some (Some)
 import Data.Text qualified as T
 import Data.Tree (Tree (Node))
+import Data.Tree.Path qualified as PathTree
 import Data.UUID (UUID)
 import Data.UUID.V4 qualified as UUID
 import Ema (Ema (..), Slug)
@@ -23,7 +24,6 @@ import Ema.CLI qualified
 import Ema.Helper.Blaze qualified as EB
 import Ema.Helper.FileSystem qualified as FileSystem
 import Ema.Helper.Markdown qualified as Markdown
-import Ema.Helper.PathTree qualified as PathTree
 import NeatInterpolation (text)
 import Shower qualified
 import System.FilePath (splitExtension, splitPath)

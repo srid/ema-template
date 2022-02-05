@@ -38,6 +38,7 @@ executable ema-template
     , neat-interpolation
     , pandoc
     , pandoc-types
+    , pathtree
     , relude
     , shower
     , some
