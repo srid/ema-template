@@ -19,10 +19,12 @@ import Data.Tree (Tree (Node))
 import Data.Tree.Path qualified as PathTree
 import Data.UUID (UUID)
 import Data.UUID.V4 qualified as UUID
-import Ema (Ema (..), Slug)
+import Ema (Ema (..))
 import Ema qualified
 import Ema.CLI qualified
 import NeatInterpolation (text)
+import Network.URI.Slug (Slug)
+import Network.URI.Slug qualified as Slug
 import Shower qualified
 import System.FilePath (splitExtension, splitPath)
 import System.UnionMount qualified as UnionMount
@@ -71,12 +73,12 @@ markdownRouteSourcePath :: MarkdownRoute -> FilePath
 markdownRouteSourcePath r =
   if r == indexMarkdownRoute
     then "index.md"
-    else toString (T.intercalate "/" $ fmap Ema.unSlug $ toList $ unMarkdownRoute r) <> ".md"
+    else toString (T.intercalate "/" $ fmap Slug.unSlug $ toList $ unMarkdownRoute r) <> ".md"
 
 -- | Filename of the markdown file without extension
 markdownRouteFileBase :: MarkdownRoute -> Text
 markdownRouteFileBase =
-  Ema.unSlug . head . NE.reverse . unMarkdownRoute
+  Slug.unSlug . head . NE.reverse . unMarkdownRoute
 
 -- | For use in breadcrumbs
 markdownRouteInits :: MarkdownRoute -> NonEmpty MarkdownRoute
@@ -173,7 +175,7 @@ instance Ema Model (Either FilePath MarkdownRoute) where
   encodeRoute _model = \case
     Left fp -> fp
     Right (MarkdownRoute slugs) ->
-      toString $ T.intercalate "/" (Ema.unSlug <$> toList slugs) <> ".html"
+      toString $ T.intercalate "/" (Slug.unSlug <$> toList slugs) <> ".html"
 
   decodeRoute _model fp = do
     if "static/" `T.isPrefixOf` toText fp
@@ -440,7 +442,7 @@ lookupTitleForgiving model r =
 
 lookupTitle :: Pandoc -> MarkdownRoute -> Text
 lookupTitle doc r =
-  maybe (Ema.unSlug $ last $ unMarkdownRoute r) plainify $ getPandocH1 doc
+  maybe (Slug.unSlug $ last $ unMarkdownRoute r) plainify $ getPandocH1 doc
 
 -- ------------------------
 -- Pandoc transformer

@@ -48,6 +48,7 @@ executable ema-template
     , time
     , unionmount
     , unliftio
+    , url-slug
     , uuid
 
   mixins:
