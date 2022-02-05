@@ -55,7 +55,7 @@
             root = pkgs.lib.cleanSourceWith { inherit filter name; src = ./.; };
             withHoogle = false;
             overrides = self: super: with pkgs.haskell.lib; {
-              ema = disableCabalFlag inputs.ema.defaultPackage.${system} "with-examples";
+              ema = inputs.ema.defaultPackage.${system};
               tailwind = tailwind-haskell;
               pathtree = inputs.pathtree.defaultPackage.${system};
               commonmark-simple = inputs.commonmark-simple.defaultPackage.${system};
