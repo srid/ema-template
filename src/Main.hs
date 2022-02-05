@@ -22,11 +22,11 @@ import Data.UUID.V4 qualified as UUID
 import Ema (Ema (..), Slug)
 import Ema qualified
 import Ema.CLI qualified
-import Ema.Helper.Blaze qualified as EB
 import NeatInterpolation (text)
 import Shower qualified
 import System.FilePath (splitExtension, splitPath)
 import System.UnionMount qualified as UnionMount
+import Text.Blaze.Html.Renderer.Utf8 qualified as RU
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -265,8 +265,20 @@ renderHtml emaAction model r = do
       throw $ BadRoute r
     Just (meta, doc) -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      EB.layoutWith "en" "UTF-8" (headHtml emaAction model r doc) $
+      layoutWith "en" "UTF-8" (headHtml emaAction model r doc) $
         bodyHtml model r meta doc
+  where
+    -- A general HTML layout
+    layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> LByteString
+    layoutWith lang encoding appHead appBody = RU.renderHtml $ do
+      H.docType
+      H.html ! A.lang lang $ do
+        H.head $ do
+          H.meta ! A.charset encoding
+          -- This makes the site mobile friendly by default.
+          H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
+          appHead
+        appBody
 
 tailwindCssUrl :: (Semigroup a, IsString a) => Some Ema.CLI.Action -> Model -> a
 tailwindCssUrl emaAction model =
