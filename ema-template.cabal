@@ -45,6 +45,7 @@ executable ema-template
     , tagged
     , text
     , time
+    , unionmount
     , unliftio
     , uuid
 

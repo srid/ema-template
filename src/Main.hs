@@ -22,11 +22,11 @@ import Ema (Ema (..), Slug)
 import Ema qualified
 import Ema.CLI qualified
 import Ema.Helper.Blaze qualified as EB
-import Ema.Helper.FileSystem qualified as FileSystem
 import Ema.Helper.Markdown qualified as Markdown
 import NeatInterpolation (text)
 import Shower qualified
 import System.FilePath (splitExtension, splitPath)
+import System.UnionMount qualified as UnionMount
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
@@ -218,12 +218,12 @@ main =
       -- LVar.
       let pats = [((), "**/*.md")]
           ignorePats = [".*"]
-      void . FileSystem.mountOnLVar "." pats ignorePats model model0 $ \() fp action -> do
+      void . UnionMount.mountOnLVar "." pats ignorePats model model0 $ \() fp action -> do
         case action of
-          FileSystem.Refresh _ () -> do
+          UnionMount.Refresh _ () -> do
             mData <- readSource fp
             pure $ maybe id (uncurry modelInsert) mData
-          FileSystem.Delete ->
+          UnionMount.Delete ->
             pure $ maybe id modelDelete $ mkMarkdownRoute fp
   where
     readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
