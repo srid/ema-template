@@ -10,6 +10,8 @@
 
     pathtree.url = "github:srid/pathtree";
     pathtree.inputs.nixpkgs.follows = "ema/nixpkgs";
+    commonmark-simple.url = "github:srid/commonmark-simple";
+    commonmark-simple.inputs.nixpkgs.follows = "ema/nixpkgs";
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" ] (system:
@@ -56,6 +58,7 @@
               ema = disableCabalFlag inputs.ema.defaultPackage.${system} "with-examples";
               tailwind = tailwind-haskell;
               pathtree = inputs.pathtree.defaultPackage.${system};
+              commonmark-simple = inputs.commonmark-simple.defaultPackage.${system};
               # lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
             };
             modifier = drv:

@@ -1,18 +1,41 @@
 {
   "nodes": {
-    "ema": {
+    "commonmark-simple": {
       "inputs": {
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
+        "nixpkgs": [
+          "ema",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1644020789,
+        "narHash": "sha256-HYpUmHj655xWpsMa0K0f7Y6ZTeK8lmpBnf7BRbydFRA=",
+        "owner": "srid",
+        "repo": "commonmark-simple",
+        "rev": "2d4d160bc27f67847b5c49dc1791caacb36346ed",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "commonmark-simple",
+        "type": "github"
+      }
+    },
+    "ema": {
+      "inputs": {
+        "flake-compat": "flake-compat_2",
+        "flake-utils": "flake-utils_2",
         "nixpkgs": "nixpkgs",
         "pre-commit-hooks": "pre-commit-hooks"
       },
       "locked": {
-        "lastModified": 1644019009,
-        "narHash": "sha256-cvuwJiiBym0+7QIntXEIOPSL0ysq5nHUZW2Vvv+/7Ic=",
+        "lastModified": 1644021180,
+        "narHash": "sha256-fldgCLegsTMeQ7fzd27A5iRhiatcn01tKPwdwtZolXA=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "32b51222d6c69a0f6162bcc5f468520ee6c69662",
+        "rev": "f65e2b1b73e92253082ca31596f3be306ea60e7f",
         "type": "github"
       },
       "original": {
@@ -86,6 +109,22 @@
         "type": "github"
       }
     },
+    "flake-compat_5": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1641205782,
+        "narHash": "sha256-4jY7RCWUoZ9cKD8co0/4tFARpWB+57+r1bLLvXNJliY=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "b7547d3eed6f32d06102ead8991ec52ab0a4f1a7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "locked": {
         "lastModified": 1642700792,
@@ -103,11 +142,11 @@
     },
     "flake-utils_2": {
       "locked": {
-        "lastModified": 1619345332,
-        "narHash": "sha256-qHnQkEp1uklKTpx3MvKtY6xzgcqXDsz5nLilbbuL+3A=",
+        "lastModified": 1642700792,
+        "narHash": "sha256-XqHrk7hFb+zBvRg6Ghl+AZDq03ov6OshJLiSWOoX5es=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "2ebf2558e5bf978c7fb8ea927dfaed8fefab2e28",
+        "rev": "846b2ae0fc4cc943637d3d1def4454213e203cba",
         "type": "github"
       },
       "original": {
@@ -118,11 +157,11 @@
     },
     "flake-utils_3": {
       "locked": {
-        "lastModified": 1642700792,
-        "narHash": "sha256-XqHrk7hFb+zBvRg6Ghl+AZDq03ov6OshJLiSWOoX5es=",
+        "lastModified": 1619345332,
+        "narHash": "sha256-qHnQkEp1uklKTpx3MvKtY6xzgcqXDsz5nLilbbuL+3A=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "846b2ae0fc4cc943637d3d1def4454213e203cba",
+        "rev": "2ebf2558e5bf978c7fb8ea927dfaed8fefab2e28",
         "type": "github"
       },
       "original": {
@@ -147,6 +186,21 @@
       }
     },
     "flake-utils_5": {
+      "locked": {
+        "lastModified": 1642700792,
+        "narHash": "sha256-XqHrk7hFb+zBvRg6Ghl+AZDq03ov6OshJLiSWOoX5es=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "846b2ae0fc4cc943637d3d1def4454213e203cba",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flake-utils_6": {
       "locked": {
         "lastModified": 1638122382,
         "narHash": "sha256-sQzZzAbvKEqN9s0bzWuYmRaA03v40gaJ4+iL1LXjaeI=",
@@ -223,8 +277,8 @@
     },
     "pathtree": {
       "inputs": {
-        "flake-compat": "flake-compat_2",
-        "flake-utils": "flake-utils_3",
+        "flake-compat": "flake-compat_3",
+        "flake-utils": "flake-utils_4",
         "nixpkgs": [
           "ema",
           "nixpkgs"
@@ -246,7 +300,7 @@
     },
     "pre-commit-hooks": {
       "inputs": {
-        "flake-utils": "flake-utils_2",
+        "flake-utils": "flake-utils_3",
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
@@ -265,6 +319,7 @@
     },
     "root": {
       "inputs": {
+        "commonmark-simple": "commonmark-simple",
         "ema": "ema",
         "flake-compat": [
           "ema",
@@ -284,8 +339,8 @@
     },
     "tailwind-haskell": {
       "inputs": {
-        "flake-compat": "flake-compat_3",
-        "flake-utils": "flake-utils_4",
+        "flake-compat": "flake-compat_4",
+        "flake-utils": "flake-utils_5",
         "nixpkgs": "nixpkgs_3",
         "tailwind-nix": "tailwind-nix"
       },
@@ -306,8 +361,8 @@
     },
     "tailwind-nix": {
       "inputs": {
-        "flake-compat": "flake-compat_4",
-        "flake-utils": "flake-utils_5",
+        "flake-compat": "flake-compat_5",
+        "flake-utils": "flake-utils_6",
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {

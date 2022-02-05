@@ -27,6 +27,7 @@ executable ema-template
     , base
     , blaze-html
     , blaze-markup
+    , commonmark-simple
     , containers
     , data-default
     , dependent-sum

@@ -6,6 +6,7 @@
 --   https://github.com/srid/ema/blob/master/src/Ema/Example/Ex02_Basic.hs
 module Main where
 
+import Commonmark.Simple qualified as Commonmark
 import Control.Exception (throw)
 import Control.Monad.Logger
 import Data.Aeson (FromJSON)
@@ -22,7 +23,6 @@ import Ema (Ema (..), Slug)
 import Ema qualified
 import Ema.CLI qualified
 import Ema.Helper.Blaze qualified as EB
-import Ema.Helper.Markdown qualified as Markdown
 import NeatInterpolation (text)
 import Shower qualified
 import System.FilePath (splitExtension, splitPath)
@@ -235,7 +235,7 @@ main =
         pure
           ( r,
             either (throw . BadMarkdown) (first $ fromMaybe def) $
-              Markdown.parseMarkdownWithFrontMatter @Meta Markdown.fullMarkdownSpec fp s
+              Commonmark.parseMarkdownWithFrontMatter @Meta Commonmark.fullMarkdownSpec fp s
           )
 
 newtype BadMarkdown = BadMarkdown Text
@@ -424,11 +424,11 @@ lookupTitleForgiving model r =
   fromMaybe (markdownRouteFileBase r) $ do
     doc <- modelLookup r model
     is <- getPandocH1 doc
-    pure $ Markdown.plainify is
+    pure $ plainify is
 
 lookupTitle :: Pandoc -> MarkdownRoute -> Text
 lookupTitle doc r =
-  maybe (Ema.unSlug $ last $ unMarkdownRoute r) Markdown.plainify $ getPandocH1 doc
+  maybe (Ema.unSlug $ last $ unMarkdownRoute r) plainify $ getPandocH1 doc
 
 -- ------------------------
 -- Pandoc transformer
@@ -486,3 +486,17 @@ withoutH1 (Pandoc meta (B.Header 1 _ _ : rest)) =
   Pandoc meta rest
 withoutH1 doc =
   doc
+
+-- | Convert Pandoc AST inlines to raw text.
+plainify :: [B.Inline] -> Text
+plainify = W.query $ \case
+  B.Str x -> x
+  B.Code _attr x -> x
+  B.Space -> " "
+  B.SoftBreak -> " "
+  B.LineBreak -> " "
+  B.RawInline _fmt s -> s
+  B.Math _mathTyp s -> s
+  -- Ignore the rest of AST nodes, as they are recursively defined in terms of
+  -- `Inline` which `W.query` will traverse again.
+  _ -> ""
