@@ -1,7 +1,7 @@
 {
   description = "Ema documentation source";
   inputs = {
-    ema.url = "github:srid/ema/master";
+    ema.url = "github:srid/ema/multisite";
     tailwind-haskell.url = "github:srid/tailwind-haskell/master";
     # Use the nixpkgs used by the pinned ema.
     nixpkgs.follows = "ema/nixpkgs";
@@ -14,6 +14,8 @@
     commonmark-simple.inputs.nixpkgs.follows = "ema/nixpkgs";
     url-slug.url = "github:srid/url-slug";
     url-slug.inputs.nixpkgs.follows = "ema/nixpkgs";
+    unionmount.url = "github:srid/unionmount/multisite";
+    unionmount.inputs.nixpkgs.follows = "ema/nixpkgs";
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -62,7 +64,7 @@
               pathtree = inputs.pathtree.defaultPackage.${system};
               commonmark-simple = inputs.commonmark-simple.defaultPackage.${system};
               url-slug = inputs.url-slug.defaultPackage.${system};
-              # lvar = self.callCabal2nix "lvar" inputs.ema.inputs.lvar { }; # Until lvar gets into nixpkgs
+              unionmount = inputs.unionmount.defaultPackage.${system};
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv
