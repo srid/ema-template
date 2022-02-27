@@ -142,22 +142,6 @@
         "type": "github"
       }
     },
-    "flake-compat_7": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1641205782,
-        "narHash": "sha256-4jY7RCWUoZ9cKD8co0/4tFARpWB+57+r1bLLvXNJliY=",
-        "owner": "edolstra",
-        "repo": "flake-compat",
-        "rev": "b7547d3eed6f32d06102ead8991ec52ab0a4f1a7",
-        "type": "github"
-      },
-      "original": {
-        "owner": "edolstra",
-        "repo": "flake-compat",
-        "type": "github"
-      }
-    },
     "flake-utils": {
       "locked": {
         "lastModified": 1642700792,
@@ -250,21 +234,6 @@
     },
     "flake-utils_7": {
       "locked": {
-        "lastModified": 1638122382,
-        "narHash": "sha256-sQzZzAbvKEqN9s0bzWuYmRaA03v40gaJ4+iL1LXjaeI=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "74f7e4319258e287b0f9cb95426c9853b282730b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "flake-utils_8": {
-      "locked": {
         "lastModified": 1642700792,
         "narHash": "sha256-XqHrk7hFb+zBvRg6Ghl+AZDq03ov6OshJLiSWOoX5es=",
         "owner": "numtide",
@@ -326,32 +295,18 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1641577433,
-        "narHash": "sha256-T7lS8vpbC3dgtrkb2ueC9HWaX4RYUwdP7IEttnvKQ8Y=",
+        "lastModified": 1645937171,
+        "narHash": "sha256-n9f9GZBNMe8UMhcgmmaXNObkH01jjgp7INMrUgBgcy4=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "568e0bc498ee51fdd88e1e94089de05f2fdbd18b",
+        "rev": "22dc22f8cedc58fcb11afe1acb08e9999e78be9c",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "568e0bc498ee51fdd88e1e94089de05f2fdbd18b",
+        "rev": "22dc22f8cedc58fcb11afe1acb08e9999e78be9c",
         "type": "github"
-      }
-    },
-    "nixpkgs_5": {
-      "locked": {
-        "lastModified": 1641521701,
-        "narHash": "sha256-IuW+4EqqKjNdJ4yO0Qr8k63OkyV1TaF5vsrZzU3GCfI=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "d77bbfcbb650d9c219ca3286e1efb707b922d7c2",
-        "type": "github"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
       }
     },
     "pathtree": {
@@ -421,41 +376,20 @@
       "inputs": {
         "flake-compat": "flake-compat_5",
         "flake-utils": "flake-utils_6",
-        "nixpkgs": "nixpkgs_4",
-        "tailwind-nix": "tailwind-nix"
+        "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1643931884,
-        "narHash": "sha256-qOFzT+Go5SGCGo5kBmLHNLgKAiJgnUcwe3NrS4TaZ0Q=",
+        "lastModified": 1645986656,
+        "narHash": "sha256-Bo9bjvCmxd8M0DLwjY6cfRYP48GI07Pi0p06I8328ZY=",
         "owner": "srid",
         "repo": "tailwind-haskell",
-        "rev": "f5463f639f403751fb4701dd2aeadac32f90f65d",
+        "rev": "e471ced826d9192ac8b25a893e1b65cab56ad192",
         "type": "github"
       },
       "original": {
         "owner": "srid",
         "ref": "master",
         "repo": "tailwind-haskell",
-        "type": "github"
-      }
-    },
-    "tailwind-nix": {
-      "inputs": {
-        "flake-compat": "flake-compat_6",
-        "flake-utils": "flake-utils_7",
-        "nixpkgs": "nixpkgs_5"
-      },
-      "locked": {
-        "lastModified": 1643563783,
-        "narHash": "sha256-aFCT2NexGIgxeW32vfQcPuLlG2GhxkhIpSEuk3sXmOU=",
-        "owner": "srid",
-        "repo": "tailwind-nix",
-        "rev": "f199f8cf6855ad5ab0a56bbac90f07860fb400d7",
-        "type": "github"
-      },
-      "original": {
-        "owner": "srid",
-        "repo": "tailwind-nix",
         "type": "github"
       }
     },
@@ -481,8 +415,8 @@
     },
     "url-slug_2": {
       "inputs": {
-        "flake-compat": "flake-compat_7",
-        "flake-utils": "flake-utils_8",
+        "flake-compat": "flake-compat_6",
+        "flake-utils": "flake-utils_7",
         "nixpkgs": [
           "ema",
           "nixpkgs"
