@@ -34,7 +34,6 @@ executable ema-template
     , directory
     , ema                 >=0.7
     , filepath
-    , lvar
     , monad-logger
     , neat-interpolation
     , pandoc
@@ -48,6 +47,8 @@ executable ema-template
     , time
     , unionmount
     , unliftio
+    , generics-sop
+    , sop-core
     , url-slug
     , uuid
 

@@ -1,11 +1,10 @@
 module Main where
 
 import Ema
-import Site.MarkdownSite (markdownSite)
-import Site.StaticSite (staticSite)
+import Site.MarkdownSite
+import Site.StaticSite 
 
 main :: IO ()
 main =
-  runSite_ $
-    markdownSite
-      `mergeSite` staticSite
+  -- TODO: static site
+  void $ runSite @MarkdownRoute ()

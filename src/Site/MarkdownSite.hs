@@ -1,14 +1,14 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Site.MarkdownSite (markdownSite) where
+module Site.MarkdownSite (MarkdownRoute) where
 
 import Commonmark.Simple qualified as Commonmark
 import Control.Exception (throw)
 import Control.Monad.Logger
 import Data.Aeson (FromJSON)
 import Data.Default (Default (..))
-import Data.LVar (LVar)
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Strict qualified as Map
 import Data.Some (Some)
@@ -19,7 +19,8 @@ import Data.UUID (UUID)
 import Data.UUID.V4 qualified as UUID
 import Ema
 import Ema.CLI qualified
-import Ema.Route (unsafeMkRouteEncoder)
+import Ema.Route.Encoder (RouteEncoder, unsafeMkRouteEncoder)
+import Ema.Route.Generic (IsRoute (..))
 import NeatInterpolation (text)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
@@ -34,7 +35,6 @@ import Text.Pandoc qualified as Pandoc
 import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
 import Text.Pandoc.Walk qualified as W
-import UnliftIO (MonadUnliftIO)
 
 -- ------------------------
 -- Our site route
@@ -111,12 +111,13 @@ data Model = Model
     modelNav :: [Tree Slug],
     -- | The ID is used to make the CSS url, so we are not caching stale
     -- Tailwind
-    modelId :: UUID
+    modelId :: UUID,
+    modelCliAction :: Some Ema.CLI.Action
   }
   deriving stock (Eq, Show)
 
-emptyModel :: IO Model
-emptyModel = Model mempty mempty <$> UUID.nextRandom
+emptyModel :: Some Ema.CLI.Action -> IO Model
+emptyModel act = Model mempty mempty <$> UUID.nextRandom <*> pure act
 
 data Meta = Meta
   { -- | Indicates the order of the Markdown file in sidebar tree, relative to
@@ -164,21 +165,22 @@ modelDelete k model =
       modelNav = PathTree.treeDeletePath (unMarkdownRoute k) (modelNav model)
     }
 
-routeEncoder :: RouteEncoder MarkdownRoute Model
-routeEncoder = unsafeMkRouteEncoder (const encodeRoute) (const decodeRoute) allRoutes
-  where
-    encodeRoute (MarkdownRoute slugs) =
-      toString $ T.intercalate "/" (Slug.unSlug <$> toList slugs) <> ".html"
-    decodeRoute fp =
-      if null fp
-        then pure indexMarkdownRoute
-        else do
-          basePath <- T.stripSuffix ".html" (toText fp)
-          slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" basePath
-          pure $ MarkdownRoute slugs
-    -- Routes to write when generating the static site.
-    allRoutes (Map.keys . modelDocs -> mdRoutes) =
-      mdRoutes
+instance IsRoute MarkdownRoute where
+  type RouteModel MarkdownRoute = Model
+  mkRouteEncoder = unsafeMkRouteEncoder (const encodeRoute) (const decodeRoute) allRoutes
+    where
+      encodeRoute (MarkdownRoute slugs) =
+        toString $ T.intercalate "/" (Slug.unSlug <$> toList slugs) <> ".html"
+      decodeRoute fp =
+        if null fp
+          then pure indexMarkdownRoute
+          else do
+            basePath <- T.stripSuffix ".html" (toText fp)
+            slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" basePath
+            pure $ MarkdownRoute slugs
+      -- Routes to write when generating the static site.
+      allRoutes (Map.keys . modelDocs -> mdRoutes) =
+        mdRoutes
 
 -- ------------------------
 -- Main entry point
@@ -190,53 +192,57 @@ log = logInfoNS "ema-template"
 logD :: MonadLogger m => Text -> m ()
 logD = logDebugNS "ema-template"
 
-type NonEmptyLVar m a =
-  ( -- Initial value
-    a,
-    -- Generator for subsequent values
-    LVar a -> m ()
-  )
-
-markdownSite :: Site Model MarkdownRoute
-markdownSite =
-  Site
-    { siteName = "ema-template",
-      siteRender = render,
-      siteModelRunner = const patch,
-      siteRouteEncoder = routeEncoder
-    }
-  where
-    patch :: (MonadIO m, MonadUnliftIO m, MonadLogger m) => m (NonEmptyLVar m Model)
-    patch = do
-      model0 <- liftIO emptyModel
-      -- FIXME: initial model should be complete
-      -- This is the place where we can load and continue to modify our "model".
-      -- You will use `LVar.set` and `LVar.modify` to modify the model.
-      --
-      -- It is a run in a (long-running) thread of its own.
-      --
-      -- We use the FileSystem helper to directly "mount" our files on to the
-      -- LVar.
-      let pats = [((), "**/*.md")]
-          ignorePats = [".*"]
-      UnionMount.mountOnLVar "." pats ignorePats model0 $ \() fp action -> do
+instance HasModel MarkdownRoute where
+  type ModelInput MarkdownRoute = ()
+  runModel cliAct _ () = do
+    model0 <- liftIO $ emptyModel cliAct
+    -- FIXME: initial model should be complete
+    -- This is the place where we can load and continue to modify our "model".
+    -- You will use `LVar.set` and `LVar.modify` to modify the model.
+    --
+    -- It is a run in a (long-running) thread of its own.
+    --
+    -- We use the FileSystem helper to directly "mount" our files on to the
+    -- LVar.
+    let pats = [((), "**/*.md")]
+        ignorePats = [".*"]
+    fmap Dynamic $
+      -- TODO: upstream to unionmount, the singleton impl.
+      UnionMount.unionMount1 (one ((), ".")) pats ignorePats model0 $ \change -> do
+        uncurry (const f) `chainM` Map.toList change
+    where
+      readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
+      readSource fp =
+        runMaybeT $ do
+          r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
+          logD $ "Reading " <> toText fp
+          s <- readFileText fp
+          pure
+            ( r,
+              either (throw . BadMarkdown) (first $ fromMaybe def) $
+                Commonmark.parseMarkdownWithFrontMatter @Meta Commonmark.fullMarkdownSpec fp s
+            )
+      f :: (MonadIO m, MonadLogger m) => Map FilePath (UnionMount.FileAction (NonEmpty ((), FilePath))) -> m (Model -> Model)
+      f fps =
+        uncurry g `chainM` Map.toList fps
+      g :: (MonadIO m, MonadLogger m) => FilePath -> UnionMount.FileAction (NonEmpty ((), FilePath)) -> m (Model -> Model)
+      g fp action =
         case action of
-          UnionMount.Refresh _ () -> do
+          UnionMount.Refresh _ _ -> do
             mData <- readSource fp
             pure $ maybe id (uncurry modelInsert) mData
           UnionMount.Delete ->
             pure $ maybe id modelDelete $ mkMarkdownRoute fp
-    readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
-    readSource fp =
-      runMaybeT $ do
-        r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
-        logD $ "Reading " <> toText fp
-        s <- readFileText fp
-        pure
-          ( r,
-            either (throw . BadMarkdown) (first $ fromMaybe def) $
-              Commonmark.parseMarkdownWithFrontMatter @Meta Commonmark.fullMarkdownSpec fp s
-          )
+
+chainM :: Monad m => (b -> m (a -> a)) -> [b] -> m (a -> a)
+chainM f =
+  fmap chain . mapM f
+  where
+    -- Apply the list of actions in the given order to an initial argument.
+    --
+    -- chain [f1, f2, ...] a = ... (f2 (f1 x))
+    chain :: [a -> a] -> a -> a
+    chain = flip $ foldl' $ flip ($)
 
 newtype BadMarkdown = BadMarkdown Text
   deriving stock (Show)
@@ -246,12 +252,12 @@ newtype BadMarkdown = BadMarkdown Text
 -- Our site HTML
 -- ------------------------
 
-render :: Some Ema.CLI.Action -> RouteEncoder MarkdownRoute Model -> Model -> MarkdownRoute -> Ema.Asset LByteString
-render act enc model r =
-  Ema.AssetGenerated Ema.Html $ renderHtml act enc model r
+instance RenderAsset MarkdownRoute where
+  renderAsset enc model r =
+    Ema.AssetGenerated Ema.Html $ renderHtml enc model r
 
-renderHtml :: Some Ema.CLI.Action -> RouteEncoder MarkdownRoute Model -> Model -> MarkdownRoute -> LByteString
-renderHtml emaAction enc model r = do
+renderHtml :: RouteEncoder Model MarkdownRoute -> Model -> MarkdownRoute -> LByteString
+renderHtml enc model r = do
   case modelLookup' r model of
     Nothing ->
       -- In dev server mode, Ema will display the exceptions in the browser.
@@ -259,7 +265,7 @@ renderHtml emaAction enc model r = do
       throw $ BadRoute r
     Just (meta, doc) -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      layoutWith "en" "UTF-8" (headHtml emaAction model r doc) $
+      layoutWith "en" "UTF-8" (headHtml model r doc) $
         bodyHtml enc model r meta doc
   where
     -- A general HTML layout
@@ -274,17 +280,17 @@ renderHtml emaAction enc model r = do
           appHead
         appBody
 
-tailwindCssUrl :: (Semigroup a, IsString a) => Some Ema.CLI.Action -> Model -> a
-tailwindCssUrl emaAction model =
+tailwindCssUrl :: (Semigroup a, IsString a) => Model -> a
+tailwindCssUrl model =
   "static/tailwind.css"
-    <> if Ema.CLI.isLiveServer emaAction
+    <> if Ema.CLI.isLiveServer (modelCliAction model)
       then -- Force the browser to reload the CSS
         "?" <> show (modelId model)
       else ""
 
-headHtml :: Some Ema.CLI.Action -> Model -> MarkdownRoute -> Pandoc -> H.Html
-headHtml emaAction model r doc = do
-  if Ema.CLI.isLiveServer emaAction
+headHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
+headHtml model r doc = do
+  if Ema.CLI.isLiveServer (modelCliAction model)
     then H.base ! A.href "/"
     else -- Since our URLs are all relative, and GitHub Pages uses a non-root base
     -- URL, we should specify it explicitly. Note that this is not necessary if
@@ -297,7 +303,7 @@ headHtml emaAction model r doc = do
         else lookupTitle doc r <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
   favIcon
-  H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl emaAction model)
+  H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl model)
   -- Make this a PWA and w/ https://web.dev/themed-omnibox/
   H.link ! A.rel "manifest" ! A.href "manifest.json"
   H.meta ! A.name "theme-color" ! A.content "#DB2777"
@@ -333,11 +339,11 @@ containerLayout ctype sidebar w = do
     H.div ! A.class_ "col-span-12 md:col-span-9" $ do
       w
 
-mdUrl :: RouteEncoder r model -> model -> r -> Text
+mdUrl :: RouteEncoder model r -> model -> r -> Text
 mdUrl enc model r =
   Ema.routeUrl enc model r
 
-bodyHtml :: RouteEncoder MarkdownRoute Model -> Model -> MarkdownRoute -> Meta -> Pandoc -> H.Html
+bodyHtml :: RouteEncoder Model MarkdownRoute -> Model -> MarkdownRoute -> Meta -> Pandoc -> H.Html
 bodyHtml enc model r meta doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     -- Header row
@@ -384,7 +390,7 @@ bodyHtml enc model r meta doc = do
           </svg>
           |]
 
-renderSidebarNav :: RouteEncoder MarkdownRoute Model -> Model -> MarkdownRoute -> H.Html
+renderSidebarNav :: RouteEncoder Model MarkdownRoute -> Model -> MarkdownRoute -> H.Html
 renderSidebarNav enc model currentRoute = do
   -- Drop toplevel index.md from sidebar tree (because we are linking to it manually)
   let navTree = PathTree.treeDeleteChild "index" $ modelNav model
@@ -400,7 +406,7 @@ renderSidebarNav enc model currentRoute = do
       let linkCls = if r == currentRoute then "text-yellow-600 font-bold" else ""
       H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ mdUrl enc model r) $ H.toHtml $ lookupTitleForgiving model r
 
-renderBreadcrumbs :: RouteEncoder MarkdownRoute Model -> Model -> MarkdownRoute -> H.Html
+renderBreadcrumbs :: RouteEncoder Model MarkdownRoute -> Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs enc model r = do
   whenNotNull (init $ markdownRouteInits r) $ \(toList -> crumbs) ->
     H.div ! A.class_ "w-full text-gray-600 mt-4 block md:hidden" $ do
