@@ -47,6 +47,7 @@ executable ema-template
     , time
     , unionmount
     , unliftio
+    , optics-core
     , generics-sop
     , sop-core
     , url-slug

@@ -2,9 +2,8 @@
   description = "Ema documentation source";
   inputs = {
     ema.url = "github:srid/ema/multisite";
-    tailwind-haskell.url = "github:srid/tailwind-haskell/master";
-    # Use the nixpkgs used by the pinned ema.
     nixpkgs.follows = "ema/nixpkgs";
+    tailwind-haskell.url = "github:srid/tailwind-haskell/master";
     flake-utils.follows = "ema/flake-utils";
     flake-compat.follows = "ema/flake-compat";
 
@@ -23,6 +22,7 @@
         name = "ema-template";
         overlays = [ ];
         pkgs = import nixpkgs { inherit system overlays; config.allowBroken = true; };
+        hp = pkgs.haskellPackages;
         tailwind-haskell = inputs.tailwind-haskell.defaultPackage.${system};
         # Based on https://github.com/input-output-hk/daedalus/blob/develop/yarn2nix.nix#L58-L71
         filter = name: type:
@@ -39,22 +39,8 @@
               sansPrefix == "/.vscode" ||
               sansPrefix == "/.ghcid"
             );
-        m1MacHsBuildTools =
-          pkgs.haskellPackages.override {
-            overrides = self: super:
-              let
-                workaround140774 = hpkg: with pkgs.haskell.lib;
-                  overrideCabal hpkg (drv: {
-                    enableSeparateBinOutput = false;
-                  });
-              in
-              {
-                ghcid = workaround140774 super.ghcid;
-                ormolu = workaround140774 super.ormolu;
-              };
-          };
         project = returnShellEnv:
-          pkgs.haskellPackages.developPackage {
+          hp.developPackage {
             inherit returnShellEnv name;
             root = pkgs.lib.cleanSourceWith { inherit filter name; src = ./.; };
             withHoogle = false;
@@ -65,12 +51,11 @@
               commonmark-simple = inputs.commonmark-simple.defaultPackage.${system};
               url-slug = inputs.url-slug.defaultPackage.${system};
               unionmount = inputs.unionmount.defaultPackage.${system};
+              relude = self.relude_1_0_0_1;
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv
-                (with (if system == "aarch64-darwin"
-                then m1MacHsBuildTools
-                else pkgs.haskellPackages); [
+                (with hp; [
                   cabal-fmt
                   cabal-install
                   ghcid

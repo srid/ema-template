@@ -19,11 +19,11 @@ import Data.UUID (UUID)
 import Data.UUID.V4 qualified as UUID
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Encoder (RouteEncoder, unsafeMkRouteEncoder)
-import Ema.Route.Generic (IsRoute (..))
+import Ema.Route.Encoder
 import NeatInterpolation (text)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
+import Optics.Core (prism')
 import Shower qualified
 import System.FilePath (splitExtension, splitPath)
 import System.UnionMount qualified as UnionMount
@@ -167,20 +167,21 @@ modelDelete k model =
 
 instance IsRoute MarkdownRoute where
   type RouteModel MarkdownRoute = Model
-  mkRouteEncoder = unsafeMkRouteEncoder (const encodeRoute) (const decodeRoute) allRoutes
+  routeEncoder = mkRouteEncoder $ const $ prism' enc dec
     where
-      encodeRoute (MarkdownRoute slugs) =
+      enc (MarkdownRoute slugs) =
         toString $ T.intercalate "/" (Slug.unSlug <$> toList slugs) <> ".html"
-      decodeRoute fp =
+      dec fp =
         if null fp
           then pure indexMarkdownRoute
           else do
             basePath <- T.stripSuffix ".html" (toText fp)
             slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" basePath
             pure $ MarkdownRoute slugs
-      -- Routes to write when generating the static site.
-      allRoutes (Map.keys . modelDocs -> mdRoutes) =
-        mdRoutes
+
+instance CanGenerate MarkdownRoute where
+  generatableRoutes (Map.keys . modelDocs -> mdRoutes) =
+    mdRoutes
 
 -- ------------------------
 -- Main entry point
@@ -194,7 +195,7 @@ logD = logDebugNS "ema-template"
 
 instance HasModel MarkdownRoute where
   type ModelInput MarkdownRoute = ()
-  runModel cliAct _ () = do
+  modelDynamic cliAct _ () = do
     model0 <- liftIO $ emptyModel cliAct
     -- FIXME: initial model should be complete
     -- This is the place where we can load and continue to modify our "model".
@@ -208,7 +209,7 @@ instance HasModel MarkdownRoute where
         ignorePats = [".*"]
     fmap Dynamic $
       -- TODO: upstream to unionmount, the singleton impl.
-      UnionMount.unionMount1 (one ((), ".")) pats ignorePats model0 $ \change -> do
+      UnionMount.unionMount (one ((), ".")) pats ignorePats model0 $ \change -> do
         uncurry (const f) `chainM` Map.toList change
     where
       readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
@@ -252,8 +253,8 @@ newtype BadMarkdown = BadMarkdown Text
 -- Our site HTML
 -- ------------------------
 
-instance RenderAsset MarkdownRoute where
-  renderAsset enc model r =
+instance CanRender MarkdownRoute where
+  routeAsset enc model r =
     Ema.AssetGenerated Ema.Html $ renderHtml enc model r
 
 renderHtml :: RouteEncoder Model MarkdownRoute -> Model -> MarkdownRoute -> LByteString
