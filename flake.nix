@@ -1,5 +1,5 @@
 {
-  description = "Ema documentation source";
+  description = "Ema template project";
   inputs = {
     ema.url = "github:srid/ema/multisite";
     nixpkgs.follows = "ema/nixpkgs";
@@ -9,11 +9,7 @@
 
     pathtree.url = "github:srid/pathtree";
     pathtree.inputs.nixpkgs.follows = "ema/nixpkgs";
-    commonmark-simple.url = "github:srid/commonmark-simple";
-    commonmark-simple.inputs.nixpkgs.follows = "ema/nixpkgs";
-    url-slug.url = "github:srid/url-slug";
-    url-slug.inputs.nixpkgs.follows = "ema/nixpkgs";
-    unionmount.url = "github:srid/unionmount/multisite";
+    unionmount.url = "github:srid/unionmount/master";
     unionmount.inputs.nixpkgs.follows = "ema/nixpkgs";
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
@@ -21,7 +17,7 @@
       let
         name = "ema-template";
         overlays = [ ];
-        pkgs = import nixpkgs { inherit system overlays; config.allowBroken = true; };
+        pkgs = nixpkgs.legacyPackages.${system};
         hp = pkgs.haskellPackages;
         tailwind-haskell = inputs.tailwind-haskell.defaultPackage.${system};
         # Based on https://github.com/input-output-hk/daedalus/blob/develop/yarn2nix.nix#L58-L71
@@ -47,11 +43,8 @@
             overrides = self: super: with pkgs.haskell.lib; {
               ema = inputs.ema.defaultPackage.${system};
               tailwind = tailwind-haskell;
-              pathtree = inputs.pathtree.defaultPackage.${system};
-              commonmark-simple = inputs.commonmark-simple.defaultPackage.${system};
-              url-slug = inputs.url-slug.defaultPackage.${system};
-              unionmount = inputs.unionmount.defaultPackage.${system};
-              relude = self.relude_1_0_0_1;
+              path-tree = self.callCabal2nix "path-tree" inputs.pathtree { };
+              unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
             };
             modifier = drv:
               pkgs.haskell.lib.addBuildTools drv

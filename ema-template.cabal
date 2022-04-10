@@ -38,14 +38,14 @@ executable ema-template
     , neat-interpolation
     , pandoc
     , pandoc-types
-    , pathtree
+    , path-tree
     , relude
     , shower
     , some
     , tagged
     , text
     , time
-    , unionmount
+    , unionmount >= 0.2
     , unliftio
     , optics-core
     , generics-sop
