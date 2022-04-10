@@ -5,7 +5,7 @@ module Site.StaticSite (StaticFile) where
 import Data.SOP
 import Data.Text qualified as T
 import Ema
-import Ema.Route.Encoder
+import Ema.Route.Encoder (mkRouteEncoder)
 import Optics.Core (prism')
 import Prelude hiding (Generic)
 
@@ -19,10 +19,9 @@ instance CanRender StaticFile where
 
 instance IsRoute StaticFile where
   type RouteModel StaticFile = NP I '[]
-  routeEncoder = mkRouteEncoder $ const $ prism' enc dec
+  routeEncoder = mkRouteEncoder $ const $ prism' unStaticFile parseRoute
     where
-      enc = unStaticFile
-      dec fp = do
+      parseRoute fp = do
         guard $ "static/" `T.isPrefixOf` toText fp || fp == "static"
         pure $ StaticFile fp
 
