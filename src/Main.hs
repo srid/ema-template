@@ -8,4 +8,4 @@ import Site.StaticSite
 
 main :: IO ()
 main =
-  void $ runSite @(MultiRoute '[MarkdownRoute, StaticFile]) (I () :* I () :* Nil)
+  void $ runSite @(MultiRoute '[MarkdownRoute, StaticPath]) (I () :* I () :* Nil)

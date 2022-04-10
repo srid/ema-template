@@ -134,8 +134,8 @@ modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
   fmap snd . modelLookup' k
 
-modelLookupMeta :: MarkdownRoute -> Model -> Meta
-modelLookupMeta k =
+_modelLookupMeta :: MarkdownRoute -> Model -> Meta
+_modelLookupMeta k =
   maybe def fst . modelLookup' k
 
 modelLookup' :: MarkdownRoute -> Model -> Maybe (Meta, Pandoc)
@@ -187,8 +187,8 @@ instance CanGenerate MarkdownRoute where
 -- Main entry point
 -- ------------------------
 
-log :: MonadLogger m => Text -> m ()
-log = logInfoNS "ema-template"
+-- log :: MonadLogger m => Text -> m ()
+-- log = logInfoNS "ema-template"
 
 logD :: MonadLogger m => Text -> m ()
 logD = logDebugNS "ema-template"
@@ -340,17 +340,13 @@ containerLayout ctype sidebar w = do
     H.div ! A.class_ "col-span-12 md:col-span-9" $ do
       w
 
-mdUrl :: RouteEncoder model r -> model -> r -> Text
-mdUrl enc model r =
-  Ema.routeUrl enc model r
-
 bodyHtml :: RouteEncoder Model MarkdownRoute -> Model -> MarkdownRoute -> Meta -> Pandoc -> H.Html
 bodyHtml enc model r meta doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     -- Header row
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
-            H.a ! A.href (H.toValue $ mdUrl enc model indexMarkdownRoute) $
+            H.a ! A.href (H.toValue $ Ema.routeUrl enc model indexMarkdownRoute) $
               H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "static/logo.svg"
     containerLayout CHeader sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
@@ -368,7 +364,7 @@ bodyHtml enc model r meta doc = do
                 target <- mkMarkdownRoute $ toString url
                 -- Check that .md links are not broken
                 if modelMember target model
-                  then pure $ mdUrl enc model target
+                  then pure $ Ema.routeUrl enc model target
                   else throw $ BadRoute target
             )
       H.div ! A.class_ "text-xs text-gray-400 mt-4" $ do
@@ -405,7 +401,7 @@ renderSidebarNav enc model currentRoute = do
           go ([slug] <> parSlugs) children
     renderRoute c r = do
       let linkCls = if r == currentRoute then "text-yellow-600 font-bold" else ""
-      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ mdUrl enc model r) $ H.toHtml $ lookupTitleForgiving model r
+      H.div ! A.class_ ("my-2 " <> c) $ H.a ! A.class_ (" hover:text-black  " <> linkCls) ! A.href (H.toValue $ Ema.routeUrl enc model r) $ H.toHtml $ lookupTitleForgiving model r
 
 renderBreadcrumbs :: RouteEncoder Model MarkdownRoute -> Model -> MarkdownRoute -> H.Html
 renderBreadcrumbs enc model r = do
@@ -417,7 +413,7 @@ renderBreadcrumbs enc model r = do
             forM_ crumbs $ \crumb ->
               H.li ! A.class_ "inline-flex items-center" $ do
                 H.a ! A.class_ "px-1 font-bold bg-yellow-500 text-gray-50 rounded"
-                  ! A.href (fromString . toString $ mdUrl enc model crumb)
+                  ! A.href (fromString . toString $ Ema.routeUrl enc model crumb)
                   $ H.text $ lookupTitleForgiving model crumb
                 rightArrow
             H.li ! A.class_ "inline-flex items-center text-gray-600" $ do
