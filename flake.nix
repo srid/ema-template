@@ -58,6 +58,7 @@
                     pkgs.nixpkgs-fmt
                     tailwind-haskell
                     pkgs.foreman
+                    pkgs.treefmt
                   ]);
             };
         in
