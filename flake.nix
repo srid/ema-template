@@ -19,27 +19,25 @@
           name = "ema-template";
           overlays = [ ];
           pkgs = nixpkgs.legacyPackages.${system};
+          inherit (pkgs.lib.trivial) pipe flip;
+          inherit (pkgs.lib.lists) optionals;
           hp = pkgs.haskellPackages;
           tailwind-haskell = inputs.tailwind-haskell.defaultPackage.${system};
-          # Based on https://github.com/input-output-hk/daedalus/blob/develop/yarn2nix.nix#L58-L71
-          filter = name: type:
-            let
-              baseName = baseNameOf (toString name);
-              sansPrefix = pkgs.lib.removePrefix (toString ./.) name;
-            in
-            # Ignore these files when building source package
-              !(
-                baseName == "README.md" ||
-                sansPrefix == "/bin" ||
-                sansPrefix == "/content" ||
-                sansPrefix == "/.github" ||
-                sansPrefix == "/.vscode" ||
-                sansPrefix == "/.ghcid"
-              );
+          shellDeps = with hp; [
+            cabal-fmt
+            cabal-install
+            ghcid
+            haskell-language-server
+            fourmolu
+            pkgs.nixpkgs-fmt
+            tailwind-haskell
+            pkgs.foreman
+            pkgs.treefmt
+          ];
           project = returnShellEnv:
             hp.developPackage {
               inherit returnShellEnv name;
-              root = pkgs.lib.cleanSourceWith { inherit filter name; src = ./.; };
+              root = ./.;
               withHoogle = false;
               overrides = self: super: with pkgs.haskell.lib; {
                 ema = inputs.ema.defaultPackage.${system};
@@ -48,18 +46,14 @@
                 unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
               };
               modifier = drv:
-                pkgs.haskell.lib.addBuildTools drv
-                  (with hp; [
-                    cabal-fmt
-                    cabal-install
-                    ghcid
-                    haskell-language-server
-                    ormolu
-                    pkgs.nixpkgs-fmt
-                    tailwind-haskell
-                    pkgs.foreman
-                    pkgs.treefmt
-                  ]);
+                let inherit (pkgs.haskell.lib) addBuildTools;
+                in
+                pipe drv
+                  [
+                    # Transform the Haskell derivation (`drv`) here.
+                    (flip addBuildTools
+                      (optionals returnShellEnv shellDeps))
+                  ];
             };
         in
         {
