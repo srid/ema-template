@@ -282,6 +282,7 @@ renderHtml enc model r = do
           appHead
         appBody
 
+-- HACK: This is coming from StaticSite.hs; can we use that route encoder?
 tailwindCssUrl :: (Semigroup a, IsString a) => Model -> a
 tailwindCssUrl model =
   "static/tailwind.css"

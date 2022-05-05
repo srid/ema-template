@@ -1,5 +1,5 @@
 {
-  description = "Ema template project";
+  description = "Ema template app";
   inputs = {
     ema.url = "github:srid/ema/multisite";
     nixpkgs.follows = "ema/nixpkgs";
