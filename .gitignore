@@ -26,3 +26,5 @@ result-*
 
 # Auto-generated
 content/static/tailwind.css
+
+.direnv
