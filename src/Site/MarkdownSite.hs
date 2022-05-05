@@ -178,9 +178,7 @@ instance IsRoute MarkdownRoute where
             basePath <- T.stripSuffix ".html" (toText fp)
             slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" basePath
             pure $ MarkdownRoute slugs
-
-instance CanGenerate MarkdownRoute where
-  generatableRoutes (Map.keys . modelDocs -> mdRoutes) =
+  allRoutes (Map.keys . modelDocs -> mdRoutes) =
     mdRoutes
 
 -- ------------------------

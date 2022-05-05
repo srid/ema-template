@@ -28,7 +28,5 @@ instance IsRoute StaticPath where
       parseRoute fp = do
         guard $ "static/" `T.isPrefixOf` toText fp || fp == "static"
         pure $ StaticPath fp
-
-instance CanGenerate StaticPath where
-  generatableRoutes Nil =
+  allRoutes Nil =
     [StaticPath "static"]
