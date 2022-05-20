@@ -11,4 +11,7 @@ main =
   void $
     Ema.runSite
       @(MultiRoute '[MarkdownRoute, StaticPath])
-      (I () :* I () :* Nil)
+      ( I "./content" -- `SiteArg` for `MarkdownRoute`
+          :* I "./content/static" -- `SiteArg` for `StaticPath`
+          :* Nil
+      )

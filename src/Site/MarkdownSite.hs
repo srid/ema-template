@@ -25,7 +25,7 @@ import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
 import Optics.Core (prism')
 import Shower qualified
-import System.FilePath (splitExtension, splitPath)
+import System.FilePath (splitExtension, splitPath, (</>))
 import System.UnionMount qualified as UnionMount
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
 import Text.Blaze.Html5 ((!))
@@ -195,8 +195,8 @@ logD :: MonadLogger m => Text -> m ()
 logD = logDebugNS "ema-template"
 
 instance EmaSite MarkdownRoute where
-  type SiteArg MarkdownRoute = ()
-  siteInput cliAct _ () = do
+  type SiteArg MarkdownRoute = FilePath -- Content directory
+  siteInput cliAct _ contentDir = do
     model0 <- liftIO $ emptyModel cliAct
     -- FIXME: initial model should be complete
     -- This is the place where we can load and continue to modify our "model".
@@ -210,7 +210,7 @@ instance EmaSite MarkdownRoute where
         ignorePats = [".*"]
     fmap Dynamic $
       -- TODO: upstream to unionmount, the singleton impl.
-      UnionMount.unionMount (one ((), ".")) pats ignorePats model0 $ \change -> do
+      UnionMount.unionMount (one ((), contentDir)) pats ignorePats model0 $ \change -> do
         uncurry (const f) `chainM` Map.toList change
     where
       readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
@@ -218,7 +218,7 @@ instance EmaSite MarkdownRoute where
         runMaybeT $ do
           r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
           logD $ "Reading " <> toText fp
-          s <- readFileText fp
+          s <- readFileText $ contentDir </> fp
           pure
             ( r
             , either (throw . BadMarkdown) (first $ fromMaybe def) $
