@@ -3,12 +3,11 @@
   inputs = {
     ema.url = "github:srid/ema/multisite";
     nixpkgs.follows = "ema/nixpkgs";
-    tailwind-haskell.url = "github:srid/tailwind-haskell/master";
     flake-utils.follows = "ema/flake-utils";
     flake-compat.follows = "ema/flake-compat";
 
-    unionmount.url = "github:srid/unionmount/master";
-    unionmount.inputs.nixpkgs.follows = "ema/nixpkgs";
+    # Haskell overrides
+    tailwind-haskell.url = "github:srid/tailwind-haskell/master";
   };
   outputs = inputs@{ self, nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem
@@ -42,7 +41,6 @@
               overrides = self: super: with pkgs.haskell.lib; {
                 ema = inputs.ema.defaultPackage.${system};
                 tailwind = tailwind-haskell;
-                unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
               };
               modifier = drv:
                 pkgs.haskell.lib.overrideCabal drv (oa: {
