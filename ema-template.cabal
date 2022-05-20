@@ -34,22 +34,22 @@ executable ema-template
     , directory
     , ema                 >=0.7
     , filepath
+    , generics-sop
     , monad-logger
     , neat-interpolation
+    , optics-core
     , pandoc
     , pandoc-types
-    , path-tree
+    , path-tree           >=0.2
     , relude
     , shower
     , some
+    , sop-core
     , tagged
     , text
     , time
-    , unionmount >= 0.2
+    , unionmount          >=0.2
     , unliftio
-    , optics-core
-    , generics-sop
-    , sop-core
     , url-slug
     , uuid
 
