@@ -34,11 +34,13 @@
             pkgs.foreman
             pkgs.treefmt
           ];
-          project = returnShellEnv:
+          project =
+            { returnShellEnv ? false
+            , withHoogle ? false
+            }:
             hp.developPackage {
-              inherit returnShellEnv name;
+              inherit returnShellEnv withHoogle name;
               root = ./.;
-              withHoogle = false;
               overrides = self: super: with pkgs.haskell.lib; {
                 ema = inputs.ema.defaultPackage.${system};
                 tailwind = tailwind-haskell;
@@ -46,22 +48,20 @@
                 unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
               };
               modifier = drv:
-                let inherit (pkgs.haskell.lib) addBuildTools;
-                in
-                pipe drv
-                  [
-                    # Transform the Haskell derivation (`drv`) here.
-                    (flip addBuildTools
-                      (optionals returnShellEnv shellDeps))
-                  ];
+                pkgs.haskell.lib.overrideCabal drv (oa: {
+                  # All the Cabal-specific overrides go here.
+                  # For examples on what is possible, see:
+                  #   https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/haskell-modules/lib/compose.nix
+                  buildTools = (oa.buildTools or [ ]) ++ optionals returnShellEnv shellDeps;
+                });
             };
         in
         {
           # Used by `nix build` & `nix run`
-          defaultPackage = project false;
+          defaultPackage = project { };
 
           # Used by `nix develop`
-          devShell = project true;
+          devShell = project { returnShellEnv = true; withHoogle = true; };
         }) // {
       herculesCI.ciSystems = [ "x86_64-linux" ];
     };
