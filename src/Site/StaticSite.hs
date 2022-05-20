@@ -16,11 +16,6 @@ import Prelude hiding (Generic)
 -- | Relative path to the static directory (or file).
 newtype StaticPath = StaticPath {unStaticPath :: FilePath}
   deriving stock (Show, Eq)
-  deriving anyclass (HasModel)
-
-instance CanRender StaticPath where
-  routeAsset _ _ (StaticPath fp) =
-    Ema.AssetStatic fp
 
 instance IsRoute StaticPath where
   type RouteModel StaticPath = NP I '[]
@@ -31,3 +26,7 @@ instance IsRoute StaticPath where
         pure $ StaticPath fp
   allRoutes Nil =
     [StaticPath "static"]
+
+instance EmaSite StaticPath where
+  siteOutput _ _ (StaticPath fp) =
+    Ema.AssetStatic fp

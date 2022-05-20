@@ -194,9 +194,9 @@ instance IsRoute MarkdownRoute where
 logD :: MonadLogger m => Text -> m ()
 logD = logDebugNS "ema-template"
 
-instance HasModel MarkdownRoute where
-  type ModelInput MarkdownRoute = ()
-  modelDynamic cliAct _ () = do
+instance EmaSite MarkdownRoute where
+  type SiteArg MarkdownRoute = ()
+  siteInput cliAct _ () = do
     model0 <- liftIO $ emptyModel cliAct
     -- FIXME: initial model should be complete
     -- This is the place where we can load and continue to modify our "model".
@@ -235,6 +235,8 @@ instance HasModel MarkdownRoute where
             pure $ maybe id (uncurry modelInsert) mData
           UnionMount.Delete ->
             pure $ maybe id modelDelete $ mkMarkdownRoute fp
+  siteOutput enc model r =
+    Ema.AssetGenerated Ema.Html $ renderHtml enc model r
 
 chainM :: Monad m => (b -> m (a -> a)) -> [b] -> m (a -> a)
 chainM f =
@@ -253,10 +255,6 @@ newtype BadMarkdown = BadMarkdown Text
 -- ------------------------
 -- Our site HTML
 -- ------------------------
-
-instance CanRender MarkdownRoute where
-  routeAsset enc model r =
-    Ema.AssetGenerated Ema.Html $ renderHtml enc model r
 
 renderHtml :: RouteEncoder Model MarkdownRoute -> Model -> MarkdownRoute -> LByteString
 renderHtml enc model r = do
