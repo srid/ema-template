@@ -7,8 +7,6 @@
     flake-utils.follows = "ema/flake-utils";
     flake-compat.follows = "ema/flake-compat";
 
-    pathtree.url = "github:srid/pathtree";
-    pathtree.inputs.nixpkgs.follows = "ema/nixpkgs";
     unionmount.url = "github:srid/unionmount/master";
     unionmount.inputs.nixpkgs.follows = "ema/nixpkgs";
   };
@@ -44,7 +42,6 @@
               overrides = self: super: with pkgs.haskell.lib; {
                 ema = inputs.ema.defaultPackage.${system};
                 tailwind = tailwind-haskell;
-                path-tree = self.callCabal2nix "path-tree" inputs.pathtree { };
                 unionmount = self.callCabal2nix "unionmount" inputs.unionmount { };
               };
               modifier = drv:
