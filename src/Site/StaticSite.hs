@@ -24,6 +24,7 @@ instance IsRoute StaticPath where
   type RouteModel StaticPath = StaticDir
   routeEncoder = mkRouteEncoder $ \m -> prism' unStaticPath (parseRoute m)
     where
+      parseRoute :: StaticDir -> FilePath -> Maybe StaticPath
       parseRoute m fp = do
         let dir = _staticDirName m
         guard $ (toText dir <> "/") `T.isPrefixOf` toText fp || fp == dir
