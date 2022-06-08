@@ -1,6 +1,11 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE QuasiQuotes #-}
 
+{- | This code generates a site based on Markdown files, rendering them using Pandoc.
+
+ You probably want to replace it with this simpler example:
+   https://github.com/srid/ema/blob/master/src/Ema/Example/Ex01_Basic.hs
+-}
 module Main where
 
 import Commonmark.Simple qualified as Commonmark
@@ -37,7 +42,7 @@ import Ema.Route.Encoder (RouteEncoder, htmlSuffixPrism, mapRouteEncoderModel, m
 
 main :: IO ()
 main =
-  void $ Ema.runSite @Route "./content"
+  Ema.runSite_ @Route "./content"
 
 -- ------------------------
 -- Our site route
@@ -82,26 +87,6 @@ markdownRouteSourcePath r =
 markdownRouteFileBase :: MarkdownRoute -> Text
 markdownRouteFileBase =
   Slug.unSlug . head . NE.reverse . unMarkdownRoute
-
--- | For use in breadcrumbs
-markdownRouteInits :: MarkdownRoute -> NonEmpty MarkdownRoute
-markdownRouteInits (MarkdownRoute ("index" :| [])) =
-  one indexMarkdownRoute
-markdownRouteInits (MarkdownRoute (slug :| rest')) =
-  indexMarkdownRoute :| case nonEmpty rest' of
-    Nothing ->
-      one $ MarkdownRoute (one slug)
-    Just rest ->
-      MarkdownRoute (one slug) : go (one slug) rest
-  where
-    go :: NonEmpty Slug -> NonEmpty Slug -> [MarkdownRoute]
-    go x (y :| ys') =
-      let this = MarkdownRoute (x <> one y)
-       in case nonEmpty ys' of
-            Nothing ->
-              one this
-            Just ys ->
-              this : go (unMarkdownRoute this) ys
 
 -- ------------------------
 -- Our site model
@@ -277,15 +262,12 @@ logD = logDebugNS "ema-template"
 
 renderHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> LByteString
 renderHtml enc model r = do
-  case modelLookup r model of
-    Nothing ->
-      -- In dev server mode, Ema will display the exceptions in the browser.
-      -- In static generation mode, they will cause the generation to crash.
-      throw $ BadRoute r
-    Just doc -> do
-      -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
-      layoutWith "en" "UTF-8" (headHtml model r doc) $
-        bodyHtml enc model r doc
+  -- In dev server mode, Ema will display the exceptions in the browser.
+  -- In static generation mode, they will cause the generation to crash.
+  let doc = fromMaybe (throw $ BadRoute r) $ modelLookup r model
+  -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
+  layoutWith "en" "UTF-8" (headHtml model r doc) $
+    bodyHtml enc model r doc
   where
     -- A general HTML layout
     layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> LByteString
@@ -298,24 +280,6 @@ renderHtml enc model r = do
           H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
           appHead
         appBody
-
-data NoTailwind = NoTailwind
-  deriving stock (Show, Eq)
-  deriving anyclass (Exception)
-
-tailwindCssUrl :: (Semigroup a, IsString a) => Model -> a
-tailwindCssUrl model =
-  if Set.member "tailwind.css" (modelFiles model)
-    then forceReload "tailwind.css"
-    else throw NoTailwind
-  where
-    -- Force the browser to reload the CSS
-    forceReload url =
-      url
-        <> if Ema.CLI.isLiveServer (modelCliAction model)
-          then "?" <> show (modelId model)
-          else -- TODO: Need a way to invalidate browser cache for statically generated site
-            ""
 
 headHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 headHtml model r doc = do
@@ -334,14 +298,6 @@ headHtml model r doc = do
   H.link ! A.href "logo.svg" ! A.rel "icon"
   H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl model)
 
-containerLayout :: H.AttributeValue -> H.Html -> H.Html -> H.Html
-containerLayout sidebarCls sidebar w = do
-  H.div ! A.class_ "px-2 grid grid-cols-12" $ do
-    H.div ! A.class_ ("hidden md:mr-4 md:block md:col-span-3 " <> sidebarCls) $ do
-      sidebar
-    H.div ! A.class_ "col-span-12 md:col-span-9" $ do
-      w
-
 bodyHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml enc model r doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
@@ -354,8 +310,7 @@ bodyHtml enc model r doc = do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
     -- Main row
-    containerLayout "md:sticky md:top-0 md:h-screen overflow-x-auto" (H.div ! A.class_ "bg-indigo-100 shadow-lg shadow-indigo-300/50 pt-1 pb-2" $ renderSidebarNav enc model r) $ do
-      renderBreadcrumbs enc model r
+    containerLayout "md:sticky md:top-0 md:h-screen overflow-x-auto" (H.div ! A.class_ "bg-indigo-100 shadow-lg shadow-indigo-300/50 pt-1 pb-2" $ sidebarHtml enc model r) $ do
       renderPandoc $
         doc
           & withoutH1 -- Eliminate H1, because we are rendering it separately (see above)
@@ -376,6 +331,13 @@ bodyHtml enc model r doc = do
           "Powered by "
           H.a ! A.class_ "font-bold" ! A.href "https://github.com/srid/ema" $ "Ema"
   where
+    containerLayout :: H.AttributeValue -> H.Html -> H.Html -> H.Html
+    containerLayout sidebarCls sidebar w = do
+      H.div ! A.class_ "px-2 grid grid-cols-12" $ do
+        H.div ! A.class_ ("hidden md:mr-4 md:block md:col-span-3 " <> sidebarCls) $ do
+          sidebar
+        H.div ! A.class_ "col-span-12 md:col-span-9" $ do
+          w
     editIcon =
       H.unsafeByteString $
         encodeUtf8
@@ -386,8 +348,8 @@ bodyHtml enc model r doc = do
           </svg>
           |]
 
-renderSidebarNav :: RouteEncoder Model Route -> Model -> MarkdownRoute -> H.Html
-renderSidebarNav enc model currentRoute = do
+sidebarHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> H.Html
+sidebarHtml enc model currentRoute = do
   -- Drop toplevel index.md from sidebar tree (because we are linking to it manually)
   let navTree = PathTree.treeDeleteChild "index" $ modelNav model
   go [] navTree
@@ -406,28 +368,23 @@ renderSidebarNav enc model currentRoute = do
           ! A.href (H.toValue $ Ema.routeUrl enc model $ Route_Markdown r)
           $ H.toHtml $ lookupTitleForgiving model r
 
-renderBreadcrumbs :: RouteEncoder Model Route -> Model -> MarkdownRoute -> H.Html
-renderBreadcrumbs enc model r = do
-  whenNotNull (init $ markdownRouteInits r) $ \(toList -> crumbs) ->
-    H.div ! A.class_ "w-full text-gray-600 mt-4 block md:hidden" $ do
-      H.div ! A.class_ "flex justify-center" $ do
-        H.div ! A.class_ "w-full bg-white py-2 rounded" $ do
-          H.ul ! A.class_ "flex text-gray-500 text-sm lg:text-base" $ do
-            forM_ crumbs $ \crumb ->
-              H.li ! A.class_ "inline-flex items-center" $ do
-                H.a ! A.class_ "px-1 font-bold bg-yellow-500 text-gray-50 rounded"
-                  ! A.href (fromString . toString $ Ema.routeUrl enc model $ Route_Markdown crumb)
-                  $ H.text $ lookupTitleForgiving model crumb
-                rightArrow
-            H.li ! A.class_ "inline-flex items-center text-gray-600" $ do
-              H.a $ H.text $ lookupTitleForgiving model r
+data NoTailwind = NoTailwind
+  deriving stock (Show, Eq)
+  deriving anyclass (Exception)
+
+tailwindCssUrl :: (Semigroup a, IsString a) => Model -> a
+tailwindCssUrl model =
+  if Set.member "tailwind.css" (modelFiles model)
+    then forceReload "tailwind.css"
+    else throw NoTailwind
   where
-    rightArrow =
-      H.unsafeByteString $
-        encodeUtf8
-          [text|
-          <svg fill="currentColor" viewBox="0 0 20 20" class="w-auto h-5 text-gray-400"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-          |]
+    -- Force the browser to reload the CSS
+    forceReload url =
+      url
+        <> if Ema.CLI.isLiveServer (modelCliAction model)
+          then "?" <> show (modelId model)
+          else -- TODO: Need a way to invalidate browser cache for statically generated site
+            ""
 
 {- | This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
  title.
@@ -442,16 +399,6 @@ lookupTitleForgiving model r =
 lookupTitle :: Pandoc -> MarkdownRoute -> Text
 lookupTitle doc r =
   maybe (Slug.unSlug $ last $ unMarkdownRoute r) plainify $ getPandocH1 doc
-
--- ------------------------
--- Pandoc transformer
--- ------------------------
-
-rewriteLinks :: (Text -> Text) -> Pandoc -> Pandoc
-rewriteLinks f = W.walk $ \case
-  B.Link attr is (url, title) ->
-    B.Link attr is (f url, title)
-  x -> x
 
 -- ------------------------
 -- Pandoc renderer
@@ -484,19 +431,20 @@ renderPandoc doc = do
 -- ------------------------
 
 getPandocH1 :: Pandoc -> Maybe [B.Inline]
-getPandocH1 = listToMaybe . W.query go
-  where
-    go = \case
-      B.Header 1 _ inlines ->
-        [inlines]
-      _ ->
-        []
+getPandocH1 doc = listToMaybe . flip W.query doc $ \case
+  B.Header 1 _ inlines -> [inlines]
+  _ -> []
 
 withoutH1 :: Pandoc -> Pandoc
 withoutH1 (Pandoc meta (B.Header 1 _ _ : rest)) =
   Pandoc meta rest
 withoutH1 doc =
   doc
+
+rewriteLinks :: (Text -> Text) -> Pandoc -> Pandoc
+rewriteLinks f = W.walk $ \case
+  B.Link attr is (url, title) -> B.Link attr is (f url, title)
+  x -> x
 
 -- | Convert Pandoc AST inlines to raw text.
 plainify :: [B.Inline] -> Text
