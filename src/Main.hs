@@ -18,11 +18,11 @@ import Data.UUID (UUID)
 import Data.UUID.V4 qualified as UUID
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Encoder (RouteEncoder, htmlSuffixEncoder, mapRouteEncoderModel, mapRouteEncoderRoute, mergeRouteEncoder, mkRouteEncoder)
+import Ema.Route.Encoder (RouteEncoder, htmlSuffixEncoder, htmlSuffixPrism, mapRouteEncoderModel, mapRouteEncoderRoute, mergeRouteEncoder, mkRouteEncoder)
 import NeatInterpolation (text)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
-import Optics.Core (iso, prism')
+import Optics.Core (Iso', iso, prism', (%))
 import System.FilePath (splitExtension, splitPath, (</>))
 import System.UnionMount qualified as UnionMount
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
@@ -49,7 +49,7 @@ data Route
 
 -- | Represents the relative path to a source (.md) file under some directory.
 newtype MarkdownRoute = MarkdownRoute {unMarkdownRoute :: NonEmpty Slug}
-  deriving newtype (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show)
 
 newtype BadRoute = BadRoute MarkdownRoute
   deriving stock (Show)
@@ -184,39 +184,41 @@ instance IsRoute StaticRoute where
   allRoutes files =
     StaticRoute <$> toList files
 
--- Route encoders can also be defined using combinators.
 instance IsRoute MarkdownRoute where
-  type RouteModel MarkdownRoute = Model -- Type of the value we need to be able to encode/ decode/ generate routes.
-  routeEncoder =
-    htmlSuffixEncoder
-      & mapRouteEncoderRoute (prism' enc dec)
-    where
-      enc (MarkdownRoute slugs) =
-        toString $ T.intercalate "/" (Slug.unSlug <$> toList slugs)
-      dec fp = do
-        guard $ not $ null fp
-        slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" (toText fp)
-        pure $ MarkdownRoute slugs
-  allRoutes model =
-    Map.keys $ modelDocs model
+  type RouteModel MarkdownRoute = Set MarkdownRoute
+  routeEncoder = mkRouteEncoder $ \mdRoutes ->
+    let enc (MarkdownRoute slugs) =
+          toString $ T.intercalate "/" (Slug.unSlug <$> toList slugs)
+        dec fp = do
+          guard $ not $ null fp
+          slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" (toText fp)
+          let r = MarkdownRoute slugs
+          guard $ Set.member r mdRoutes
+          pure r
+     in htmlSuffixPrism % prism' enc dec
+  allRoutes =
+    toList
 
 -- Route encoders can also be composed.
 -- TODO: Upstream?
 instance IsRoute Route where
   type RouteModel Route = Model
   routeEncoder =
-    let mEnc = routeEncoder @MarkdownRoute
-        sEnc = routeEncoder @StaticRoute
-     in mergeRouteEncoder mEnc sEnc
-          & mapRouteEncoderRoute (iso (either Route_Markdown Route_Static) back)
-          & mapRouteEncoderModel (\m -> (m, modelFiles m))
-    where
-      back = \case
-        Route_Markdown r -> Left r
-        Route_Static r -> Right r
+    mergeRouteEncoder (routeEncoder @MarkdownRoute) (routeEncoder @StaticRoute)
+      & mapRouteEncoderRoute routeDecomposition
+      & mapRouteEncoderModel decomposeModel
   allRoutes model =
-    fmap Route_Markdown (allRoutes @MarkdownRoute model)
-      <> fmap Route_Static (allRoutes @StaticRoute $ modelFiles model)
+    fmap Route_Markdown (allRoutes @MarkdownRoute $ fst . decomposeModel $ model)
+      <> fmap Route_Static (allRoutes @StaticRoute $ snd . decomposeModel $ model)
+
+decomposeModel :: Model -> (Set MarkdownRoute, Set FilePath)
+decomposeModel m = (Map.keysSet $ modelDocs m, modelFiles m)
+
+routeDecomposition :: Iso' (Either MarkdownRoute StaticRoute) Route
+routeDecomposition =
+  iso (either Route_Markdown Route_Static) $ \case
+    Route_Markdown r -> Left r
+    Route_Static r -> Right r
 
 -- ------------------------
 -- Main entry point
