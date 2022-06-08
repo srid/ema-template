@@ -20,7 +20,7 @@ jobs:
         run: |
           mkdir ./output
           export TARGET=$(pwd)/output
-          nix develop -c tailwind-run -o content/static/tailwind.css 'src/**/*.hs' 
+          nix develop -c tailwind-run -o content/tailwind.css 'src/**/*.hs' 
           cd ./content
           ../result/bin/ema-template gen $TARGET
       - name: Deploy to gh-pages 🚀
