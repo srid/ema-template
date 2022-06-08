@@ -16,9 +16,6 @@ import Data.Tree (Tree (Node))
 import Data.Tree.Path qualified as PathTree
 import Data.UUID (UUID)
 import Data.UUID.V4 qualified as UUID
-import Ema
-import Ema.CLI qualified
-import Ema.Route.Encoder (RouteEncoder, htmlSuffixEncoder, htmlSuffixPrism, mapRouteEncoderModel, mapRouteEncoderRoute, mergeRouteEncoder, mkRouteEncoder)
 import NeatInterpolation (text)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
@@ -33,6 +30,10 @@ import Text.Pandoc qualified as Pandoc
 import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
 import Text.Pandoc.Walk qualified as W
+
+import Ema
+import Ema.CLI qualified
+import Ema.Route.Encoder (RouteEncoder, htmlSuffixPrism, mapRouteEncoderModel, mapRouteEncoderRoute, mergeRouteEncoder, mkRouteEncoder)
 
 main :: IO ()
 main =
@@ -168,7 +169,7 @@ modelDelete k model =
 -- Route encoder
 -- ------------------------
 
-newtype StaticRoute = StaticRoute FilePath
+newtype StaticRoute = StaticRoute {unStaticRoute :: FilePath}
   deriving newtype (Eq, Ord, Show)
 
 -- A route encoder is simply a Prism with (some) model as its context.
@@ -176,8 +177,8 @@ newtype StaticRoute = StaticRoute FilePath
 instance IsRoute StaticRoute where
   type RouteModel StaticRoute = Set FilePath
   routeEncoder = mkRouteEncoder $ \files ->
-    let enc (StaticRoute relPath) =
-          relPath
+    let enc =
+          unStaticRoute
         dec fp =
           StaticRoute fp <$ guard (Set.member fp files)
      in prism' enc dec
@@ -199,11 +200,12 @@ instance IsRoute MarkdownRoute where
   allRoutes =
     toList
 
--- Route encoders can also be composed.
--- TODO: Upstream?
+-- Route encoders can also be composed. Here, we use `mergeRouteEncoder` to
+-- combine two route encoders.
 instance IsRoute Route where
   type RouteModel Route = Model
   routeEncoder =
+    -- TODO: Upstream this pattern?
     mergeRouteEncoder (routeEncoder @MarkdownRoute) (routeEncoder @StaticRoute)
       & mapRouteEncoderRoute routeDecomposition
       & mapRouteEncoderModel decomposeModel
@@ -212,7 +214,7 @@ instance IsRoute Route where
       <> fmap Route_Static (allRoutes @StaticRoute $ snd . decomposeModel $ model)
 
 decomposeModel :: Model -> (Set MarkdownRoute, Set FilePath)
-decomposeModel m = (Map.keysSet $ modelDocs m, modelFiles m)
+decomposeModel = Map.keysSet . modelDocs &&& modelFiles
 
 routeDecomposition :: Iso' (Either MarkdownRoute StaticRoute) Route
 routeDecomposition =
@@ -312,7 +314,8 @@ tailwindCssUrl model =
       url
         <> if Ema.CLI.isLiveServer (modelCliAction model)
           then "?" <> show (modelId model)
-          else ""
+          else -- TODO: Need a way to invalidate browser cache for statically generated site
+            ""
 
 headHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
 headHtml model r doc = do
@@ -328,21 +331,8 @@ headHtml model r doc = do
         then "Ema – next-gen Haskell static site generator"
         else lookupTitle doc r <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
-  favIcon
+  H.link ! A.href "logo.svg" ! A.rel "icon"
   H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl model)
-  unless (r == indexMarkdownRoute) prismJs
-  where
-    prismJs = do
-      H.unsafeByteString . encodeUtf8 $
-        [text|
-        <link href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css" rel="stylesheet" />
-        <script src="https://cdn.jsdelivr.net/combine/npm/prismjs@1.23.0/prism.min.js,npm/prismjs@1.23.0/plugins/autoloader/prism-autoloader.min.js"></script>
-        |]
-    favIcon = do
-      H.unsafeByteString . encodeUtf8 $
-        [text|
-        <link href="logo.svg" rel="icon" />
-        |]
 
 containerLayout :: H.AttributeValue -> H.Html -> H.Html -> H.Html
 containerLayout sidebarCls sidebar w = do
@@ -458,11 +448,10 @@ lookupTitle doc r =
 -- ------------------------
 
 rewriteLinks :: (Text -> Text) -> Pandoc -> Pandoc
-rewriteLinks f =
-  W.walk $ \case
-    B.Link attr is (url, title) ->
-      B.Link attr is (f url, title)
-    x -> x
+rewriteLinks f = W.walk $ \case
+  B.Link attr is (url, title) ->
+    B.Link attr is (f url, title)
+  x -> x
 
 -- ------------------------
 -- Pandoc renderer
@@ -497,7 +486,6 @@ renderPandoc doc = do
 getPandocH1 :: Pandoc -> Maybe [B.Inline]
 getPandocH1 = listToMaybe . W.query go
   where
-    go :: B.Block -> [[B.Inline]]
     go = \case
       B.Header 1 _ inlines ->
         [inlines]
