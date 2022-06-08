@@ -1,7 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module Main where
 
@@ -341,7 +339,7 @@ headHtml model r doc = do
     favIcon = do
       H.unsafeByteString . encodeUtf8 $
         [text|
-        <link href="static/logo.svg" rel="icon" />
+        <link href="logo.svg" rel="icon" />
         |]
 
 containerLayout :: H.AttributeValue -> H.Html -> H.Html -> H.Html
@@ -359,7 +357,7 @@ bodyHtml enc model r doc = do
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
             H.a ! A.href (H.toValue $ Ema.routeUrl enc model $ Route_Markdown indexMarkdownRoute) $
-              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "static/logo.svg"
+              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "logo.svg"
     containerLayout "" sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
