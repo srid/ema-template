@@ -1,6 +1,7 @@
-{- | Ema app to serve static files without any dynamic generation involved.
+{- | Ema site to serve static files only.
 
- Usually you want to combine this with your real site.
+ Usually you want to combine this with your real site (where asset generation
+ does happen).
 -}
 module Site.StaticSite (StaticPath) where
 
@@ -14,6 +15,7 @@ import System.FilePath (splitFileName, (</>))
 newtype StaticPath = StaticPath {unStaticPath :: FilePath}
   deriving stock (Show, Eq)
 
+-- | The model for this app.
 data StaticDir = StaticDir
   { _staticDirBaseDir :: FilePath
   , _staticDirName :: String
