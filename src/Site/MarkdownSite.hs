@@ -6,7 +6,7 @@ module Site.MarkdownSite (MarkdownRoute) where
 
 import Commonmark.Simple qualified as Commonmark
 import Control.Exception (throw)
-import Control.Monad.Logger
+import Control.Monad.Logger (MonadLogger, MonadLoggerIO, logDebugNS)
 import Data.Aeson (FromJSON)
 import Data.Default (Default (..))
 import Data.List.NonEmpty qualified as NE
@@ -19,7 +19,7 @@ import Data.UUID (UUID)
 import Data.UUID.V4 qualified as UUID
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Encoder
+import Ema.Route.Encoder (RouteEncoder, mkRouteEncoder)
 import NeatInterpolation (text)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
@@ -168,89 +168,65 @@ modelDelete k model =
     , modelNav = PathTree.treeDeletePath (unMarkdownRoute k) (modelNav model)
     }
 
+-- ------------------------
+-- Route encoder
+-- ------------------------
+
+-- A route encoder is simply a Prism with (some) `Model` as its context.
+-- `mkRouteEncoder` enables you to create route encoders "manually" this way.
 instance IsRoute MarkdownRoute where
-  type RouteModel MarkdownRoute = Model
-  routeEncoder = mkRouteEncoder $ const $ prism' enc dec
+  type RouteModel MarkdownRoute = Model -- Type of the value we need to be able to encode/ decode/ generate routes.
+  routeEncoder = mkRouteEncoder $ \_model ->
+    prism' enc dec
     where
       enc (MarkdownRoute slugs) =
         toString $ T.intercalate "/" (Slug.unSlug <$> toList slugs) <> ".html"
-      dec fp =
-        if null fp
-          then pure indexMarkdownRoute
-          else do
-            basePath <- T.stripSuffix ".html" (toText fp)
-            slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" basePath
-            pure $ MarkdownRoute slugs
-  allRoutes (Map.keys . modelDocs -> mdRoutes) =
-    mdRoutes
+      dec fp
+        | null fp = pure indexMarkdownRoute
+        | otherwise = do
+          basePath <- T.stripSuffix ".html" $ toText fp
+          slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" basePath
+          pure $ MarkdownRoute slugs
+  allRoutes model =
+    Map.keys $ modelDocs model
 
 -- ------------------------
 -- Main entry point
 -- ------------------------
 
--- log :: MonadLogger m => Text -> m ()
--- log = logInfoNS "ema-template"
-
-logD :: MonadLogger m => Text -> m ()
-logD = logDebugNS "ema-template"
-
 instance EmaSite MarkdownRoute where
   type SiteArg MarkdownRoute = FilePath -- Content directory
   siteInput cliAct _ contentDir = do
     model0 <- liftIO $ emptyModel cliAct
-    -- FIXME: initial model should be complete
-    -- This is the place where we can load and continue to modify our "model".
-    -- You will use `LVar.set` and `LVar.modify` to modify the model.
-    --
-    -- It is a run in a (long-running) thread of its own.
-    --
-    -- We use the FileSystem helper to directly "mount" our files on to the
-    -- LVar.
+    -- This function should return an Ema `Dynamic`, which is merely a tuple of
+    -- the initial model value, and an updating function. The `unionmount`
+    -- library returns this tuple, which we use to create the `Dynamic`.
     let pats = [((), "**/*.md")]
         ignorePats = [".*"]
-    fmap Dynamic $
-      -- TODO: upstream to unionmount, the singleton impl.
-      UnionMount.unionMount (one ((), contentDir)) pats ignorePats model0 $ \change -> do
-        uncurry (const f) `chainM` Map.toList change
+    Dynamic
+      <$> UnionMount.mount contentDir pats ignorePats model0 (const handleUpdate)
     where
-      readSource :: (MonadIO m, MonadLogger m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
-      readSource fp =
-        runMaybeT $ do
-          r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
-          logD $ "Reading " <> toText fp
-          s <- readFileText $ contentDir </> fp
-          pure
-            ( r
-            , either (throw . BadMarkdown) (first $ fromMaybe def) $
-                Commonmark.parseMarkdownWithFrontMatter @Meta Commonmark.fullMarkdownSpec fp s
-            )
-      f :: (MonadIO m, MonadLogger m) => Map FilePath (UnionMount.FileAction (NonEmpty ((), FilePath))) -> m (Model -> Model)
-      f fps =
-        uncurry g `chainM` Map.toList fps
-      g :: (MonadIO m, MonadLogger m) => FilePath -> UnionMount.FileAction (NonEmpty ((), FilePath)) -> m (Model -> Model)
-      g fp action =
-        case action of
-          UnionMount.Refresh _ _ -> do
-            mData <- readSource fp
-            pure $ maybe id (uncurry modelInsert) mData
-          UnionMount.Delete ->
-            pure $ maybe id modelDelete $ mkMarkdownRoute fp
+      -- Take the file that got changed and update our in-memory `Model` accordingly.
+      handleUpdate :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> UnionMount.FileAction () -> m (Model -> Model)
+      handleUpdate fp = \case
+        UnionMount.Refresh _ _ -> do
+          mData <- readSource fp
+          pure $ maybe id (uncurry modelInsert) mData
+        UnionMount.Delete ->
+          pure $ maybe id modelDelete $ mkMarkdownRoute fp
+      readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
+      readSource fp = runMaybeT $ do
+        r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
+        logD $ "Reading " <> toText fp
+        s <- readFileText $ contentDir </> fp
+        case Commonmark.parseMarkdownWithFrontMatter @Meta Commonmark.fullMarkdownSpec fp s of
+          Left err -> Ema.CLI.crash "ema-template" err
+          Right (mMeta, doc) -> pure (r, (fromMaybe def mMeta, doc))
   siteOutput enc model r =
     Ema.AssetGenerated Ema.Html $ renderHtml enc model r
 
-chainM :: Monad m => (b -> m (a -> a)) -> [b] -> m (a -> a)
-chainM f =
-  fmap chain . mapM f
-  where
-    -- Apply the list of actions in the given order to an initial argument.
-    --
-    -- chain [f1, f2, ...] a = ... (f2 (f1 x))
-    chain :: [a -> a] -> a -> a
-    chain = flip $ foldl' $ flip ($)
-
-newtype BadMarkdown = BadMarkdown Text
-  deriving stock (Show)
-  deriving anyclass (Exception)
+logD :: MonadLogger m => Text -> m ()
+logD = logDebugNS "ema-template"
 
 -- ------------------------
 -- Our site HTML
