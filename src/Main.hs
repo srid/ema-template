@@ -8,7 +8,6 @@ module Main where
 import Commonmark.Simple qualified as Commonmark
 import Control.Exception (throw)
 import Control.Monad.Logger (MonadLogger, MonadLoggerIO, logDebugNS)
-import Data.Aeson (FromJSON)
 import Data.Default (Default (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Map.Strict qualified as Map
@@ -26,7 +25,6 @@ import NeatInterpolation (text)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
 import Optics.Core (iso, prism')
-import Shower qualified
 import System.FilePath (splitExtension, splitPath, (</>))
 import System.UnionMount qualified as UnionMount
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
@@ -119,7 +117,7 @@ data Model = Model
   { -- | Directory under which all content is kept.
     modelBaseDir :: FilePath
   , -- | Pandoc AST of all markdown files.
-    modelDocs :: Map MarkdownRoute (Meta, Pandoc)
+    modelDocs :: Map MarkdownRoute Pandoc
   , -- | Other files (to be served/ copied as-is)
     modelFiles :: Set FilePath
   , -- | Sidebar tree
@@ -136,42 +134,21 @@ data Model = Model
 emptyModel :: FilePath -> Some Ema.CLI.Action -> IO Model
 emptyModel baseDir act = Model baseDir mempty mempty mempty <$> UUID.nextRandom <*> pure act
 
--- | TODO: Remove this for simplicity
-data Meta = Meta
-  { -- | Indicates the order of the Markdown file in sidebar tree, relative to
-    -- its siblings.
-    order :: Maybe Int
-  }
-  deriving stock (Eq, Show, Generic)
-  deriving anyclass (FromJSON)
-
-instance Default Meta where
-  def = Meta Nothing
-
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
 modelLookup k =
-  fmap snd . modelLookup' k
-
-_modelLookupMeta :: MarkdownRoute -> Model -> Meta
-_modelLookupMeta k =
-  maybe def fst . modelLookup' k
-
-modelLookup' :: MarkdownRoute -> Model -> Maybe (Meta, Pandoc)
-modelLookup' k =
   Map.lookup k . modelDocs
 
 modelMember :: MarkdownRoute -> Model -> Bool
 modelMember k =
   Map.member k . modelDocs
 
-modelInsert :: MarkdownRoute -> (Meta, Pandoc) -> Model -> Model
+modelInsert :: MarkdownRoute -> Pandoc -> Model -> Model
 modelInsert k v model =
   let modelDocs' = Map.insert k v (modelDocs model)
    in model
         { modelDocs = modelDocs'
         , modelNav =
-            PathTree.treeInsertPathMaintainingOrder
-              (\k' -> order $ maybe def fst $ Map.lookup (MarkdownRoute k') modelDocs')
+            PathTree.treeInsertPath
               (unMarkdownRoute k)
               (modelNav model)
         }
@@ -273,14 +250,14 @@ instance EmaSite Route where
             pure $ modelInsertStaticFile fp
           UnionMount.Delete -> do
             pure $ modelDeleteStaticFile fp
-      readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe (MarkdownRoute, (Meta, Pandoc)))
+      readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe (MarkdownRoute, Pandoc))
       readSource fp = runMaybeT $ do
         r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
         logD $ "Reading " <> toText fp
         s <- readFileText $ contentDir </> fp
-        case Commonmark.parseMarkdownWithFrontMatter @Meta Commonmark.fullMarkdownSpec fp s of
+        case Commonmark.parseMarkdownWithFrontMatter @(Map Text Text) Commonmark.fullMarkdownSpec fp s of
           Left err -> Ema.CLI.crash "ema-template" err
-          Right (mMeta, doc) -> pure (r, (fromMaybe def mMeta, doc))
+          Right (_mMeta, doc) -> pure (r, doc)
   siteOutput enc model = \case
     Route_Markdown r ->
       Ema.AssetGenerated Ema.Html $ renderHtml enc model r
@@ -298,15 +275,15 @@ logD = logDebugNS "ema-template"
 
 renderHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> LByteString
 renderHtml enc model r = do
-  case modelLookup' r model of
+  case modelLookup r model of
     Nothing ->
       -- In dev server mode, Ema will display the exceptions in the browser.
       -- In static generation mode, they will cause the generation to crash.
       throw $ BadRoute r
-    Just (meta, doc) -> do
+    Just doc -> do
       -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
       layoutWith "en" "UTF-8" (headHtml model r doc) $
-        bodyHtml enc model r meta doc
+        bodyHtml enc model r doc
   where
     -- A general HTML layout
     layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> LByteString
@@ -375,8 +352,8 @@ containerLayout sidebarCls sidebar w = do
     H.div ! A.class_ "col-span-12 md:col-span-9" $ do
       w
 
-bodyHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> Meta -> Pandoc -> H.Html
-bodyHtml enc model r meta doc = do
+bodyHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> Pandoc -> H.Html
+bodyHtml enc model r doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     -- Header row
     let sidebarLogo =
@@ -402,9 +379,6 @@ bodyHtml enc model r meta doc = do
                   then pure $ Ema.routeUrl enc model $ Route_Markdown target
                   else throw $ BadRoute target
             )
-      H.div ! A.class_ "text-xs text-gray-400 mt-4" $ do
-        -- Just for debuggging
-        H.toHtml $ Shower.shower meta
       H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
         let editUrl = fromString $ "https://github.com/srid/ema-template/edit/master/content/" <> markdownRouteSourcePath r
         H.a ! A.href editUrl ! A.title "Edit this page on GitHub" $ editIcon
