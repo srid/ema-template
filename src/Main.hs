@@ -38,7 +38,7 @@ import Text.Pandoc.Walk qualified as W
 
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Encoder (RouteEncoder, htmlSuffixPrism, mapRouteEncoderModel, mapRouteEncoderRoute, mergeRouteEncoder, mkRouteEncoder)
+import Ema.Route.Encoder (RouteEncoder, combineRouteEncoder, htmlSuffixPrism, mkRouteEncoder)
 
 main :: IO ()
 main =
@@ -63,7 +63,7 @@ newtype BadRoute = BadRoute MarkdownRoute
 
 -- | Represents the top-level index.md
 indexMarkdownRoute :: MarkdownRoute
-indexMarkdownRoute = MarkdownRoute $ "index" :| []
+indexMarkdownRoute = MarkdownRoute $ one "index"
 
 {- | Convert foo/bar.md to a @MarkdownRoute@
 
@@ -128,20 +128,13 @@ modelMember k =
 
 modelInsert :: MarkdownRoute -> Pandoc -> Model -> Model
 modelInsert k v model =
-  let modelDocs' = Map.insert k v (modelDocs model)
-   in model
-        { modelDocs = modelDocs'
-        , modelNav =
-            PathTree.treeInsertPath
-              (unMarkdownRoute k)
-              (modelNav model)
-        }
-
-modelInsertStaticFile :: FilePath -> Model -> Model
-modelInsertStaticFile fp model = model {modelFiles = Set.insert fp (modelFiles model)}
-
-modelDeleteStaticFile :: FilePath -> Model -> Model
-modelDeleteStaticFile fp model = model {modelFiles = Set.delete fp (modelFiles model)}
+  model
+    { modelDocs = Map.insert k v (modelDocs model)
+    , modelNav =
+        PathTree.treeInsertPath
+          (unMarkdownRoute k)
+          (modelNav model)
+    }
 
 modelDelete :: MarkdownRoute -> Model -> Model
 modelDelete k model =
@@ -149,6 +142,12 @@ modelDelete k model =
     { modelDocs = Map.delete k (modelDocs model)
     , modelNav = PathTree.treeDeletePath (unMarkdownRoute k) (modelNav model)
     }
+
+modelInsertStaticFile :: FilePath -> Model -> Model
+modelInsertStaticFile fp model = model {modelFiles = Set.insert fp (modelFiles model)}
+
+modelDeleteStaticFile :: FilePath -> Model -> Model
+modelDeleteStaticFile fp model = model {modelFiles = Set.delete fp (modelFiles model)}
 
 -- ------------------------
 -- Route encoder
@@ -185,15 +184,16 @@ instance IsRoute MarkdownRoute where
   allRoutes =
     toList
 
--- Route encoders can also be composed. Here, we use `mergeRouteEncoder` to
+-- Route encoders can also be composed. Here, we use `combineRouteEncoder` to
 -- combine two route encoders.
 instance IsRoute Route where
   type RouteModel Route = Model
   routeEncoder =
-    -- TODO: Upstream this pattern?
-    mergeRouteEncoder (routeEncoder @MarkdownRoute) (routeEncoder @StaticRoute)
-      & mapRouteEncoderRoute routeDecomposition
-      & mapRouteEncoderModel decomposeModel
+    combineRouteEncoder
+      routeDecomposition
+      decomposeModel
+      (routeEncoder @MarkdownRoute)
+      (routeEncoder @StaticRoute)
   allRoutes model =
     fmap Route_Markdown (allRoutes @MarkdownRoute $ fst . decomposeModel $ model)
       <> fmap Route_Static (allRoutes @StaticRoute $ snd . decomposeModel $ model)
@@ -265,7 +265,6 @@ renderHtml enc model r = do
   -- In dev server mode, Ema will display the exceptions in the browser.
   -- In static generation mode, they will cause the generation to crash.
   let doc = fromMaybe (throw $ BadRoute r) $ modelLookup r model
-  -- You can return your own HTML string here, but we use the Tailwind+Blaze helper
   layoutWith "en" "UTF-8" (headHtml model r doc) $
     bodyHtml enc model r doc
   where

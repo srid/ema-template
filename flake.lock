@@ -3,11 +3,11 @@
     "ema": {
       "flake": false,
       "locked": {
-        "lastModified": 1654724488,
-        "narHash": "sha256-uYm3YP9pUM6F02aA5qlDNuJvc+AFbwz1DPfHZaUa6Xw=",
+        "lastModified": 1654811981,
+        "narHash": "sha256-scm9rL0nAF0sT14Wcqgbclo49bdHPUi7EbKypSmk1H0=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "d2ed188987ca4b40e29db6accbd6bc510b1b2e92",
+        "rev": "4df4d09ec65f0843a182680f180a69ee1d06e493",
         "type": "github"
       },
       "original": {
@@ -70,11 +70,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1654665288,
-        "narHash": "sha256-7blJpfoZEu7GKb84uh3io/5eSJNdaagXD9d15P9iQMs=",
+        "lastModified": 1654694478,
+        "narHash": "sha256-nFAMETXEhIrqnBe28u6vqy4ixSRr0BRrlZLlS0e7eoM=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "43ecbe7840d155fa933ee8a500fb00dbbc651fc8",
+        "rev": "18de53ca965bd0678aaf09e5ce0daae05c58355a",
         "type": "github"
       },
       "original": {
