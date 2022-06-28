@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {- | This code generates a site based on Markdown files, rendering them using Pandoc.
 
@@ -24,7 +25,7 @@ import Data.UUID.V4 qualified as UUID
 import NeatInterpolation (text)
 import Network.URI.Slug (Slug)
 import Network.URI.Slug qualified as Slug
-import Optics.Core (Iso', iso, prism', (%))
+import Optics.Core (Prism', prism', (%))
 import System.FilePath (splitExtension, splitPath, (</>))
 import System.UnionMount qualified as UnionMount
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
@@ -36,9 +37,12 @@ import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
 import Text.Pandoc.Walk qualified as W
 
+import Data.SOP (I (..), NP (Nil, (:*)))
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Encoder (RouteEncoder, combineRouteEncoder, htmlSuffixPrism, mkRouteEncoder)
+import Ema.Route.Encoder (htmlSuffixPrism, mkRouteEncoder)
+import Ema.Route.Generic
+import Generics.SOP qualified as SOP
 
 main :: IO ()
 main =
@@ -51,7 +55,14 @@ main =
 data Route
   = Route_Markdown MarkdownRoute
   | Route_Static StaticRoute
-  deriving stock (Eq, Show, Ord)
+  deriving stock (Eq, Show, Ord, Generic)
+  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
+  deriving (HasSubRoutes) via (Route `WithSubRoutes` '[MarkdownRoute, StaticRoute])
+  deriving (IsRoute) via (Route `WithModel` Model)
+
+instance HasSubModels Route where
+  subModels m =
+    I (Map.keysSet $ modelDocs m) :* I (modelFiles m) :* Nil
 
 -- | Represents the relative path to a source (.md) file under some directory.
 newtype MarkdownRoute = MarkdownRoute {unMarkdownRoute :: NonEmpty Slug}
@@ -184,36 +195,13 @@ instance IsRoute MarkdownRoute where
   allRoutes =
     toList
 
--- Route encoders can also be composed. Here, we use `combineRouteEncoder` to
--- combine two route encoders.
-instance IsRoute Route where
-  type RouteModel Route = Model
-  routeEncoder =
-    combineRouteEncoder
-      routeDecomposition
-      decomposeModel
-      (routeEncoder @MarkdownRoute)
-      (routeEncoder @StaticRoute)
-  allRoutes model =
-    fmap Route_Markdown (allRoutes @MarkdownRoute $ fst . decomposeModel $ model)
-      <> fmap Route_Static (allRoutes @StaticRoute $ snd . decomposeModel $ model)
-
-decomposeModel :: Model -> (Set MarkdownRoute, Set FilePath)
-decomposeModel = Map.keysSet . modelDocs &&& modelFiles
-
-routeDecomposition :: Iso' (Either MarkdownRoute StaticRoute) Route
-routeDecomposition =
-  iso (either Route_Markdown Route_Static) $ \case
-    Route_Markdown r -> Left r
-    Route_Static r -> Right r
-
 -- ------------------------
 -- Main entry point
 -- ------------------------
 
 instance EmaSite Route where
   type SiteArg Route = FilePath -- Content directory
-  siteInput cliAct _ contentDir = do
+  siteInput cliAct contentDir = do
     model0 <- liftIO $ emptyModel contentDir cliAct
     -- This function should return an Ema `Dynamic`, which is merely a tuple of
     -- the initial model value, and an updating function. The `unionmount`
@@ -245,9 +233,9 @@ instance EmaSite Route where
         case Commonmark.parseMarkdownWithFrontMatter @(Map Text Text) Commonmark.fullMarkdownSpec fp s of
           Left err -> Ema.CLI.crash "ema-template" err
           Right (_mMeta, doc) -> pure (r, doc)
-  siteOutput enc model = \case
+  siteOutput rp model = \case
     Route_Markdown r ->
-      Ema.AssetGenerated Ema.Html $ renderHtml enc model r
+      Ema.AssetGenerated Ema.Html $ renderHtml rp model r
     Route_Static (StaticRoute path) ->
       Ema.AssetStatic $ modelBaseDir model </> path
 
@@ -260,13 +248,13 @@ logD = logDebugNS "ema-template"
 -- Our site HTML
 -- ------------------------
 
-renderHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> LByteString
-renderHtml enc model r = do
+renderHtml :: Prism' FilePath Route -> Model -> MarkdownRoute -> LByteString
+renderHtml rp model r = do
   -- In dev server mode, Ema will display the exceptions in the browser.
   -- In static generation mode, they will cause the generation to crash.
   let doc = fromMaybe (throw $ BadRoute r) $ modelLookup r model
   layoutWith "en" "UTF-8" (headHtml model r doc) $
-    bodyHtml enc model r doc
+    bodyHtml rp model r doc
   where
     -- A general HTML layout
     layoutWith :: H.AttributeValue -> H.AttributeValue -> H.Html -> H.Html -> LByteString
@@ -297,19 +285,19 @@ headHtml model r doc = do
   H.link ! A.href "logo.svg" ! A.rel "icon"
   H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl model)
 
-bodyHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> Pandoc -> H.Html
-bodyHtml enc model r doc = do
+bodyHtml :: Prism' FilePath Route -> Model -> MarkdownRoute -> Pandoc -> H.Html
+bodyHtml rp model r doc = do
   H.div ! A.class_ "container mx-auto xl:max-w-screen-lg" $ do
     -- Header row
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
-            H.a ! A.href (H.toValue $ Ema.routeUrl enc model $ Route_Markdown indexMarkdownRoute) $
+            H.a ! A.href (H.toValue $ Ema.routeUrl rp $ Route_Markdown indexMarkdownRoute) $
               H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "logo.svg"
     containerLayout "" sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
     -- Main row
-    containerLayout "md:sticky md:top-0 md:h-screen overflow-x-auto" (H.div ! A.class_ "bg-indigo-100 shadow-lg shadow-indigo-300/50 pt-1 pb-2" $ sidebarHtml enc model r) $ do
+    containerLayout "md:sticky md:top-0 md:h-screen overflow-x-auto" (H.div ! A.class_ "bg-indigo-100 shadow-lg shadow-indigo-300/50 pt-1 pb-2" $ sidebarHtml rp model r) $ do
       renderPandoc $
         doc
           & withoutH1 -- Eliminate H1, because we are rendering it separately (see above)
@@ -320,7 +308,7 @@ bodyHtml enc model r doc = do
                 target <- mkMarkdownRoute $ toString url
                 -- Check that .md links are not broken
                 if modelMember target model
-                  then pure $ Ema.routeUrl enc model $ Route_Markdown target
+                  then pure $ Ema.routeUrl rp $ Route_Markdown target
                   else throw $ BadRoute target
             )
       H.footer ! A.class_ "flex justify-center items-center space-x-4 my-8 text-center text-gray-500" $ do
@@ -347,8 +335,8 @@ bodyHtml enc model r doc = do
           </svg>
           |]
 
-sidebarHtml :: RouteEncoder Model Route -> Model -> MarkdownRoute -> H.Html
-sidebarHtml enc model currentRoute = do
+sidebarHtml :: Prism' FilePath Route -> Model -> MarkdownRoute -> H.Html
+sidebarHtml rp model currentRoute = do
   -- Drop toplevel index.md from sidebar tree (because we are linking to it manually)
   let navTree = PathTree.treeDeleteChild "index" $ modelNav model
   go [] navTree
@@ -364,7 +352,7 @@ sidebarHtml enc model currentRoute = do
       H.div ! A.class_ ("my-2 " <> c) $ do
         H.a
           ! A.class_ (" hover:text-black  " <> linkCls)
-          ! A.href (H.toValue $ Ema.routeUrl enc model $ Route_Markdown r)
+          ! A.href (H.toValue $ Ema.routeUrl rp $ Route_Markdown r)
           $ H.toHtml $ lookupTitleForgiving model r
 
 data NoTailwind = NoTailwind
