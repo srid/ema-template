@@ -26,6 +26,7 @@ executable ema-template
     , async
     , base
     , blaze-html
+    , generic-optics
     , blaze-markup
     , commonmark-simple
     , containers

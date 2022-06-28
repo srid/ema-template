@@ -37,6 +37,7 @@ import Text.Pandoc.Builder qualified as B
 import Text.Pandoc.Definition (Pandoc (..))
 import Text.Pandoc.Walk qualified as W
 
+import Data.Generics.Sum.Any (AsAny (_As))
 import Data.SOP (I (..), NP (Nil, (:*)))
 import Ema
 import Ema.CLI qualified
@@ -266,7 +267,7 @@ renderHtml rp model r = do
   -- In dev server mode, Ema will display the exceptions in the browser.
   -- In static generation mode, they will cause the generation to crash.
   let doc = fromMaybe (throw $ BadRoute r) $ modelLookup r model
-  layoutWith "en" "UTF-8" (headHtml model r doc) $
+  layoutWith "en" "UTF-8" (headHtml rp model r doc) $
     bodyHtml rp model r doc
   where
     -- A general HTML layout
@@ -281,8 +282,8 @@ renderHtml rp model r = do
           appHead
         appBody
 
-headHtml :: Model -> MarkdownRoute -> Pandoc -> H.Html
-headHtml model r doc = do
+headHtml :: Prism' FilePath Route -> Model -> MarkdownRoute -> Pandoc -> H.Html
+headHtml rp model r doc = do
   if Ema.CLI.isLiveServer (modelCliAction model)
     then H.base ! A.href "/"
     else -- Since our URLs are all relative, and GitHub Pages uses a non-root base
@@ -295,8 +296,8 @@ headHtml model r doc = do
         then "Ema – next-gen Haskell static site generator"
         else lookupTitle doc r <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
-  H.link ! A.href "logo.svg" ! A.rel "icon"
-  H.link ! A.rel "stylesheet" ! A.href (tailwindCssUrl model)
+  H.link ! A.href (staticUrlTo rp "logo.svg") ! A.rel "icon"
+  H.link ! A.rel "stylesheet" ! A.href (H.toValue $ tailwindCssUrl rp model)
 
 bodyHtml :: Prism' FilePath Route -> Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml rp model r doc = do
@@ -305,7 +306,7 @@ bodyHtml rp model r doc = do
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
             H.a ! A.href (H.toValue $ Ema.routeUrl rp $ Route_Markdown indexMarkdownRoute) $
-              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src "logo.svg"
+              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src (staticUrlTo rp "logo.svg")
     containerLayout "" sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
@@ -372,10 +373,10 @@ data NoTailwind = NoTailwind
   deriving stock (Show, Eq)
   deriving anyclass (Exception)
 
-tailwindCssUrl :: (Semigroup a, IsString a) => Model -> a
-tailwindCssUrl model =
+tailwindCssUrl :: Prism' FilePath Route -> Model -> H.AttributeValue
+tailwindCssUrl rp model =
   if Set.member "tailwind.css" (modelFiles model)
-    then forceReload "tailwind.css"
+    then forceReload $ staticUrlTo rp "tailwind.css"
     else throw NoTailwind
   where
     -- Force the browser to reload the CSS
@@ -385,6 +386,13 @@ tailwindCssUrl model =
           then "?" <> show (modelId model)
           else -- TODO: Need a way to invalidate browser cache for statically generated site
             ""
+
+staticUrlTo :: Prism' FilePath Route -> FilePath -> H.AttributeValue
+staticUrlTo rp fp =
+  H.toValue $ Ema.routeUrl rpStatic $ StaticRoute fp
+  where
+    rpStatic :: Prism' FilePath StaticRoute
+    rpStatic = rp % (_As @"Route_Static")
 
 {- | This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
  title.
