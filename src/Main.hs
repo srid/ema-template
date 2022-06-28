@@ -57,12 +57,18 @@ data Route
   | Route_Static StaticRoute
   deriving stock (Eq, Show, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving (HasSubRoutes) via (Route `WithSubRoutes` '[MarkdownRoute, StaticRoute])
+  deriving
+    (HasSubRoutes)
+    via ( Route
+            `WithSubRoutes` '[ SlugListRoute
+                             , StaticRoute
+                             ]
+        )
   deriving (IsRoute) via (Route `WithModel` Model)
 
 instance HasSubModels Route where
   subModels m =
-    I (Map.keysSet $ modelDocs m) :* I (modelFiles m) :* Nil
+    I (Set.map coerce $ Map.keysSet $ modelDocs m) :* I (modelFiles m) :* Nil
 
 -- | Represents the relative path to a source (.md) file under some directory.
 newtype MarkdownRoute = MarkdownRoute {unMarkdownRoute :: NonEmpty Slug}
@@ -161,7 +167,7 @@ modelDeleteStaticFile :: FilePath -> Model -> Model
 modelDeleteStaticFile fp model = model {modelFiles = Set.delete fp (modelFiles model)}
 
 -- ------------------------
--- Route encoder
+-- Re-usable Route "library"
 -- ------------------------
 
 newtype StaticRoute = StaticRoute {unStaticRoute :: FilePath}
@@ -180,16 +186,23 @@ instance IsRoute StaticRoute where
   allRoutes files =
     StaticRoute <$> toList files
 
-instance IsRoute MarkdownRoute where
-  type RouteModel MarkdownRoute = Set MarkdownRoute
-  routeEncoder = mkRouteEncoder $ \mdRoutes ->
-    let enc (MarkdownRoute slugs) =
+{- | Arbitrary routes represented by a non-empty list of @Slug@.
+
+  index.html corresponds to ["index"].
+-}
+newtype SlugListRoute = SlugListRoute (NonEmpty Slug)
+  deriving stock (Eq, Ord, Show)
+
+instance IsRoute SlugListRoute where
+  type RouteModel SlugListRoute = Set SlugListRoute
+  routeEncoder = mkRouteEncoder $ \rs ->
+    let enc (SlugListRoute slugs) =
           toString $ T.intercalate "/" (Slug.unSlug <$> toList slugs)
         dec fp = do
           guard $ not $ null fp
           slugs <- nonEmpty $ fromString . toString <$> T.splitOn "/" (toText fp)
-          let r = MarkdownRoute slugs
-          guard $ Set.member r mdRoutes
+          let r = SlugListRoute slugs
+          guard $ Set.member r rs
           pure r
      in htmlSuffixPrism % prism' enc dec
   allRoutes =
