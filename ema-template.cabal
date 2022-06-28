@@ -26,7 +26,6 @@ executable ema-template
     , async
     , base
     , blaze-html
-    , generic-optics
     , blaze-markup
     , commonmark-simple
     , containers
@@ -35,6 +34,7 @@ executable ema-template
     , directory
     , ema                 >=0.7
     , filepath
+    , generic-optics
     , generics-sop
     , monad-logger
     , neat-interpolation
@@ -52,7 +52,6 @@ executable ema-template
     , unionmount          >=0.2
     , unliftio
     , url-slug
-    , uuid
 
   mixins:
     base hiding (Prelude),
