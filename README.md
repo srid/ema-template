@@ -1,6 +1,6 @@
 # Ema Template
 
-This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with sidebar from a directory of Markdown files using Pandoc, Blaze HTML & TailwindCSS 3.x — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
+This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with a sidebar from a directory of Markdown files using Pandoc, Blaze HTML & TailwindCSS 3.x — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
 
 The generated HTML site can be previewed here: https://srid.github.io/ema-template/
 
@@ -12,7 +12,7 @@ To develop with full IDE support in Visual Studio Code, follow these steps:
 - Run `nix-shell --run haskell-language-server` to sanity check your environment 
 - Open the repository [as single-folder workspace](https://code.visualstudio.com/docs/editor/workspaces#_singlefolder-workspaces) in Visual Studio Code
     - Install the recommended extensions
-    - <kbd>Ctrl+Shift+P</kbd> to run command "Nix-Env: Select Environment" and select `shell.nix`. The extension will ask you to reload VSCode at the end.
+    - <kbd>Ctrl+Shift+P</kbd> to run the command "Nix-Env: Select Environment" and select `shell.nix`. The extension will ask you to reload VSCode at the end.
 - Press <kbd>Ctrl+Shift+B</kbd> in VSCode, or run `bin/run` in terminal, to launch the Ema dev server, and navigate to http://localhost:9001/
 
 All but the final step need to be done only once. Check [the Ema tutorial](https://ema.srid.ca/start/tutorial) next.
@@ -26,10 +26,10 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
       - To automate this, `mv ema-template.cabal myproject.cabal; nix run nixpkgs#sd -- ema-template myproject * */* .github/*/*`
 - Configuration:
   - To change the port (or the Ema CLI arguments, used by `bin/run`), see `./.ghcid` (if you leave out `--port` a random port will be used)
-  - To update Ema to latest Git revision, run `nix flake lock --update-input ema` or just `nix flake update` (the latter updates all Nix inputs)
+  - To update Ema to the latest Git revision, run `nix flake lock --update-input ema` or just `nix flake update` (the latter updates all Nix inputs)
     - Be sure to check https://ema.srid.ca/guide/upgrade for changes needed.
-  - To add/remove Haskell dependencies, see the .cabal file. If a dependency is unavailable in nixpkgs, you can override it (to point to say a Git repo) in the `source-overrides` (or `overrides` if you need more power) attribute of flake.nix. You can imitate the manner in which the `ema` package itself is overriden.
-- To generate static site, run:
+  - To add/remove Haskell dependencies, see the .cabal file. If a dependency is unavailable in nixpkgs, you can override it (to point to say a Git repo) in the `source-overrides` (or `overrides` if you need more power) attribute of flake.nix. You can imitate the manner in which the `ema` package itself is overridden.
+- To generate the site, run:
   ```sh
   mkdir ../output 
   cd content && nix run .. -- gen ../../output
@@ -38,7 +38,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 
 ## Non-Nix workflow
 
-In order to use this repository without Nix, such as with plain Cabal or Stack, you need to have the following installed manually:
+To use this repository without Nix, such as with plain Cabal or Stack, you need to have the following installed manually:
 
 - ghcid (used by `bin/run-haskell` which `./Procfile` invokes)
 - [tailwind runner](https://hackage.haskell.org/package/tailwind) along with [tailwind CLI](https://tailwindcss.com/docs/installation)

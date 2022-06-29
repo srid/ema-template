@@ -40,7 +40,7 @@ import Data.SOP (I (..), NP (Nil, (:*)))
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
 import Ema
 import Ema.CLI qualified
-import Ema.Route.Encoder (htmlSuffixPrism, mkRouteEncoder)
+import Ema.Route.Encoder (htmlSuffixPrism)
 import Ema.Route.Generic
 import Generics.SOP qualified as SOP
 
@@ -158,10 +158,12 @@ modelDelete k model =
     }
 
 modelInsertStaticFile :: UTCTime -> FilePath -> Model -> Model
-modelInsertStaticFile lastAccessed fp model = model {modelFiles = Map.insert fp lastAccessed (modelFiles model)}
+modelInsertStaticFile lastAccessed fp model =
+  model {modelFiles = Map.insert fp lastAccessed (modelFiles model)}
 
 modelDeleteStaticFile :: FilePath -> Model -> Model
-modelDeleteStaticFile fp model = model {modelFiles = Map.delete fp (modelFiles model)}
+modelDeleteStaticFile fp model =
+  model {modelFiles = Map.delete fp (modelFiles model)}
 
 -- ------------------------
 -- Re-usable Route "library"
