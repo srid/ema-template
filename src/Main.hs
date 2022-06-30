@@ -40,11 +40,12 @@ import Text.Pandoc.Walk qualified as W
 
 import Data.Generics.Sum.Any (AsAny (_As))
 import Data.SOP (I (..), NP (Nil, (:*)))
-import Data.Time (UTCTime, defaultTimeLocale, formatTime, getCurrentTime)
+import Data.Time (UTCTime)
 import Ema
 import Ema.CLI qualified
 import Ema.Route.Encoder (htmlSuffixPrism)
 import Ema.Route.Generic
+import Ema.Route.Lib.Extra.StaticRoute qualified as SR
 import Generics.SOP qualified as SOP
 
 main :: IO ()
@@ -57,14 +58,14 @@ main =
 
 data Route
   = Route_Markdown MarkdownRoute
-  | Route_Static (StaticRoute UTCTime)
+  | Route_Static (SR.StaticRoute "content" UTCTime)
   deriving stock (Eq, Show, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
     (HasSubRoutes)
     via ( Route
             `WithSubRoutes` '[ SlugListRoute
-                             , StaticRoute UTCTime
+                             , SR.StaticRoute "content" UTCTime
                              ]
         )
   deriving (IsRoute) via (Route `WithModel` Model)
@@ -118,30 +119,26 @@ markdownRouteFileBase =
   go in here.
 -}
 data Model = Model
-  { -- | Directory under which all content is kept.
-    modelBaseDir :: FilePath
-  , -- | Pandoc AST of all markdown files.
+  { -- | Pandoc AST of all markdown files.
     modelDocs :: Map MarkdownRoute Pandoc
-  , -- | Other files (to be served/ copied as-is)
-    modelFiles :: Map FilePath UTCTime
   , -- | Sidebar tree
     modelNav :: [Tree Slug]
+  , -- | Other files (to be served/ copied as-is)
+    modelFiles :: Map FilePath UTCTime
   , -- | Ema's CLI arguments stored in model, to later check if we are in live
     -- server.
     modelCliAction :: Some Ema.CLI.Action
   }
   deriving stock (Eq, Show)
 
-emptyModel :: FilePath -> Some Ema.CLI.Action -> Model
-emptyModel baseDir = Model baseDir mempty mempty mempty
+emptyModel :: Some Ema.CLI.Action -> Model
+emptyModel = Model mempty mempty mempty
 
 modelLookup :: MarkdownRoute -> Model -> Maybe Pandoc
-modelLookup k =
-  Map.lookup k . modelDocs
+modelLookup k = Map.lookup k . modelDocs
 
 modelMember :: MarkdownRoute -> Model -> Bool
-modelMember k =
-  Map.member k . modelDocs
+modelMember k = Map.member k . modelDocs
 
 modelInsert :: MarkdownRoute -> Pandoc -> Model -> Model
 modelInsert k v model =
@@ -160,33 +157,9 @@ modelDelete k model =
     , modelNav = PathTree.treeDeletePath (unMarkdownRoute k) (modelNav model)
     }
 
-modelInsertStaticFile :: UTCTime -> FilePath -> Model -> Model
-modelInsertStaticFile lastAccessed fp model =
-  model {modelFiles = Map.insert fp lastAccessed (modelFiles model)}
-
-modelDeleteStaticFile :: FilePath -> Model -> Model
-modelDeleteStaticFile fp model =
-  model {modelFiles = Map.delete fp (modelFiles model)}
-
 -- ------------------------
 -- Re-usable Route "library"
 -- ------------------------
-
-newtype StaticRoute (a :: Type) = StaticRoute {unStaticRoute :: FilePath}
-  deriving newtype (Eq, Ord, Show)
-
--- A route encoder is simply a Prism with (some) model as its context.
--- `mkRouteEncoder` enables you to create route encoders "manually" this way.
-instance IsRoute (StaticRoute a) where
-  type RouteModel (StaticRoute a) = Map FilePath a
-  routeEncoder = mkRouteEncoder $ \files ->
-    let enc =
-          unStaticRoute
-        dec fp =
-          StaticRoute fp <$ guard (Map.member fp files)
-     in prism' enc dec
-  allRoutes files =
-    StaticRoute <$> Map.keys files
 
 {- | Arbitrary routes represented by a non-empty list of @Slug@.
 
@@ -220,27 +193,21 @@ instance EmaSite Route where
     -- This function should return an Ema `Dynamic`, which is merely a tuple of
     -- the initial model value, and an updating function. The `unionmount`
     -- library returns this tuple, which we use to create the `Dynamic`.
-    let pats = [(Md, "**/*.md"), (StaticFile, "**/*")]
+    let pats = [((), "**/*.md")]
         ignorePats = [".*"]
-        model0 = emptyModel contentDir cliAct
-    Dynamic
-      <$> UnionMount.mount contentDir pats ignorePats model0 handleUpdate
+        model0 = emptyModel cliAct
+    modelDyn <- Dynamic <$> UnionMount.mount contentDir pats ignorePats model0 (const handleUpdate)
+    staticDyn <- siteInput @(SR.StaticRoute "content" UTCTime) cliAct ()
+    pure $ liftA2 (\m files -> m {modelFiles = files}) modelDyn staticDyn
     where
       -- Take the file that got changed and update our in-memory `Model` accordingly.
-      handleUpdate :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FileType -> FilePath -> UnionMount.FileAction () -> m (Model -> Model)
-      handleUpdate = \case
-        Md -> \fp -> \case
-          UnionMount.Refresh _ _ -> do
-            mData <- readSource fp
-            pure $ maybe id (uncurry modelInsert) mData
-          UnionMount.Delete ->
-            pure $ maybe id modelDelete $ mkMarkdownRoute fp
-        StaticFile -> \fp -> \case
-          UnionMount.Refresh _ _ -> do
-            now <- liftIO getCurrentTime
-            pure $ modelInsertStaticFile now fp
-          UnionMount.Delete -> do
-            pure $ modelDeleteStaticFile fp
+      handleUpdate :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> UnionMount.FileAction () -> m (Model -> Model)
+      handleUpdate fp = \case
+        UnionMount.Refresh _ _ -> do
+          mData <- readSource fp
+          pure $ maybe id (uncurry modelInsert) mData
+        UnionMount.Delete ->
+          pure $ maybe id modelDelete $ mkMarkdownRoute fp
       readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe (MarkdownRoute, Pandoc))
       readSource fp = runMaybeT $ do
         r :: MarkdownRoute <- hoistMaybe (mkMarkdownRoute fp)
@@ -252,10 +219,8 @@ instance EmaSite Route where
   siteOutput rp model = \case
     Route_Markdown r ->
       Ema.AssetGenerated Ema.Html $ renderHtml rp model r
-    Route_Static (StaticRoute path) ->
-      Ema.AssetStatic $ modelBaseDir model </> path
-
-data FileType = Md | StaticFile deriving stock (Show, Eq, Ord)
+    Route_Static r ->
+      siteOutput (rp % (_As @"Route_Static")) (modelFiles model) r
 
 logD :: MonadLogger m => Text -> m ()
 logD = logDebugNS "ema-template"
@@ -298,8 +263,8 @@ headHtml rp model r doc = do
         then "Ema – next-gen Haskell static site generator"
         else lookupTitle doc r <> " – Ema"
   H.meta ! A.name "description" ! A.content "Ema static site generator (Jamstack) in Haskell"
-  H.link ! A.href (staticUrlTo rp "logo.svg") ! A.rel "icon"
-  H.link ! A.rel "stylesheet" ! A.href (H.toValue $ tailwindCssUrl rp model)
+  H.link ! A.href (staticRouteUrl rp model "logo.svg") ! A.rel "icon"
+  H.link ! A.rel "stylesheet" ! A.href (staticRouteUrl rp model "tailwind.css")
 
 bodyHtml :: Prism' FilePath Route -> Model -> MarkdownRoute -> Pandoc -> H.Html
 bodyHtml rp model r doc = do
@@ -308,7 +273,7 @@ bodyHtml rp model r doc = do
     let sidebarLogo =
           H.div ! A.class_ "mt-2 h-full flex pl-2 space-x-2 items-end" $ do
             H.a ! A.href (H.toValue $ Ema.routeUrl rp $ Route_Markdown indexMarkdownRoute) $
-              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src (staticUrlTo rp "logo.svg")
+              H.img ! A.class_ "z-50 transition transform hover:scale-125 hover:opacity-80 h-20" ! A.src (staticRouteUrl rp model "logo.svg")
     containerLayout "" sidebarLogo $ do
       H.div ! A.class_ "flex justify-center items-center" $ do
         H.h1 ! A.class_ "text-6xl mt-2 mb-2 text-center pb-2" $ H.text $ lookupTitle doc r
@@ -375,28 +340,10 @@ data NoTailwind = NoTailwind
   deriving stock (Show, Eq)
   deriving anyclass (Exception)
 
-tailwindCssUrl :: Prism' FilePath Route -> Model -> H.AttributeValue
-tailwindCssUrl rp model =
-  case Map.lookup "tailwind.css" (modelFiles model) of
-    Just lastAccessed ->
-      let tag = H.toValue $ formatTime defaultTimeLocale "%s" lastAccessed
-       in forceReload tag $ staticUrlTo rp "tailwind.css"
-    Nothing -> throw NoTailwind
-  where
-    -- Force the browser to reload the CSS
-    forceReload tag url =
-      url
-        <> if Ema.CLI.isLiveServer (modelCliAction model)
-          then "?" <> tag
-          else -- TODO: Need a way to invalidate browser cache for statically generated site
-            ""
-
-staticUrlTo :: Prism' FilePath Route -> FilePath -> H.AttributeValue
-staticUrlTo rp fp =
-  H.toValue $ Ema.routeUrl rpStatic $ StaticRoute fp
-  where
-    rpStatic :: Prism' FilePath (StaticRoute UTCTime)
-    rpStatic = rp % (_As @"Route_Static")
+-- | Link to a file under ./content
+staticRouteUrl :: IsString r => Prism' FilePath Route -> Model -> FilePath -> r
+staticRouteUrl rp m =
+  SR.staticRouteUrl (modelCliAction m) (rp % (_As @"Route_Static")) (modelFiles m)
 
 {- | This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
  title.
