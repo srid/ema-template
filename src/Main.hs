@@ -1,6 +1,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use impureThrow" #-}
 
 {- | This code generates a site based on Markdown files, rendering them using Pandoc.
 
@@ -61,7 +64,7 @@ data Route
     (HasSubRoutes)
     via ( Route
             `WithSubRoutes` '[ SlugListRoute
-                             , (StaticRoute UTCTime)
+                             , StaticRoute UTCTime
                              ]
         )
   deriving (IsRoute) via (Route `WithModel` Model)
@@ -90,7 +93,7 @@ mkMarkdownRoute :: FilePath -> Maybe MarkdownRoute
 mkMarkdownRoute = \case
   (splitExtension -> (fp, ".md")) ->
     let slugs = fromString . toString . T.dropWhileEnd (== '/') . toText <$> splitPath fp
-     in MarkdownRoute <$> nonEmpty slugs
+     in viaNonEmpty MarkdownRoute slugs
   _ ->
     Nothing
 
@@ -240,7 +243,7 @@ instance EmaSite Route where
             pure $ modelDeleteStaticFile fp
       readSource :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> m (Maybe (MarkdownRoute, Pandoc))
       readSource fp = runMaybeT $ do
-        r :: MarkdownRoute <- MaybeT $ pure $ mkMarkdownRoute fp
+        r :: MarkdownRoute <- hoistMaybe (mkMarkdownRoute fp)
         logD $ "Reading " <> toText fp
         s <- readFileText $ contentDir </> fp
         case Commonmark.parseMarkdownWithFrontMatter @(Map Text Text) Commonmark.fullMarkdownSpec fp s of
@@ -288,7 +291,7 @@ headHtml rp model r doc = do
     else -- Since our URLs are all relative, and GitHub Pages uses a non-root base
     -- URL, we should specify it explicitly. Note that this is not necessary if
     -- you are using a CNAME.
-      H.base ! A.href "https://srid.github.io/ema-template/"
+      H.base ! A.href "/ema-template/"
   H.title $
     H.text $
       if r == indexMarkdownRoute
