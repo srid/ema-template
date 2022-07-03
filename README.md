@@ -1,6 +1,6 @@
 # Ema Template
 
-This repository represents a simple example of [Ema](https://ema.srid.ca/) — it generates a basic site with a sidebar from a directory of Markdown files using Pandoc, Blaze HTML & TailwindCSS 3.x — and as such acts as a **template repository** to use for bootstrapping your next static site using Ema.
+A very simple example [Ema](https://ema.srid.ca/) site that is based on Blaze HTML & TailwindCSS 3. Use it to bootstrap your next static site using Ema.
 
 The generated HTML site can be previewed here: https://srid.github.io/ema-template/
 
@@ -32,7 +32,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 - To generate the site, run:
   ```sh
   mkdir ../output 
-  cd content && nix run .. -- gen ../../output
+  nix run . -- gen ../output
   ```
   - You might want to change or remove the `<base>` tag in `Main.hs` depending on where you will be deploying the site.
 
