@@ -58,25 +58,30 @@ main =
 
 data Route
   = Route_Markdown MarkdownRoute
-  | Route_Static (SR.StaticRoute "content" UTCTime)
+  | Route_Static (SR.StaticRoute "content")
   deriving stock (Eq, Show, Ord, Generic)
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
-    (HasSubRoutes)
-    via ( Route
-            `WithSubRoutes` '[ SlugListRoute
-                             , SR.StaticRoute "content" UTCTime
-                             ]
+    (HasSubRoutes, IsRoute)
+    via ( GenericRoute
+            Route
+            '[ WithModel Model
+             , WithSubRoutes
+                '[ SlugListRoute
+                 , SR.StaticRoute "content"
+                 ]
+             ]
         )
-  deriving (IsRoute) via (Route `WithModel` Model)
 
 instance HasSubModels Route where
   subModels m =
-    I (Set.map coerce $ Map.keysSet $ modelDocs m) :* I (modelFiles m) :* Nil
+    I (Set.map coerce $ Map.keysSet $ modelDocs m)
+      :* I (SR.Model (modelCliAction m) (modelFiles m))
+      :* Nil
 
 -- | Represents the relative path to a source (.md) file under some directory.
 newtype MarkdownRoute = MarkdownRoute {unMarkdownRoute :: NonEmpty Slug}
-  deriving stock (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
 
 newtype BadRoute = BadRoute MarkdownRoute
   deriving stock (Show)
@@ -166,7 +171,7 @@ modelDelete k model =
   index.html corresponds to ["index"].
 -}
 newtype SlugListRoute = SlugListRoute (NonEmpty Slug)
-  deriving stock (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
 
 instance IsRoute SlugListRoute where
   type RouteModel SlugListRoute = Set SlugListRoute
@@ -197,8 +202,8 @@ instance EmaSite Route where
         ignorePats = [".*"]
         model0 = emptyModel cliAct
     modelDyn <- Dynamic <$> UnionMount.mount contentDir pats ignorePats model0 (const handleUpdate)
-    staticDyn <- siteInput @(SR.StaticRoute "content" UTCTime) cliAct ()
-    pure $ liftA2 (\m files -> m {modelFiles = files}) modelDyn staticDyn
+    staticDyn <- siteInput @(SR.StaticRoute "content") cliAct ()
+    pure $ liftA2 (\m files -> m {modelFiles = files}) modelDyn (SR.modelFiles <$> staticDyn)
     where
       -- Take the file that got changed and update our in-memory `Model` accordingly.
       handleUpdate :: (MonadIO m, MonadLogger m, MonadLoggerIO m) => FilePath -> UnionMount.FileAction () -> m (Model -> Model)
@@ -220,7 +225,8 @@ instance EmaSite Route where
     Route_Markdown r ->
       Ema.AssetGenerated Ema.Html $ renderHtml rp model r
     Route_Static r ->
-      siteOutput (rp % (_As @"Route_Static")) (modelFiles model) r
+      let (I _ :* I staticModel :* Nil) = subModels @Route model
+       in siteOutput (rp % (_As @"Route_Static")) staticModel r
 
 logD :: MonadLogger m => Text -> m ()
 logD = logDebugNS "ema-template"
@@ -343,7 +349,9 @@ data NoTailwind = NoTailwind
 -- | Link to a file under ./content
 staticRouteUrl :: IsString r => Prism' FilePath Route -> Model -> FilePath -> r
 staticRouteUrl rp m =
-  SR.staticRouteUrl (modelCliAction m) (rp % (_As @"Route_Static")) (modelFiles m)
+  SR.staticRouteUrl (rp % (_As @"Route_Static")) staticModel
+  where
+    I _ :* I staticModel :* Nil = subModels @Route m
 
 {- | This accepts if "${folder}.md" doesn't exist, and returns "folder" as the
  title.
