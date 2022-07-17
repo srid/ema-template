@@ -9,7 +9,7 @@
     # Haskell overrides
     ema.url = "github:srid/ema/multisite";
     ema.flake = false;
-    tailwind-haskell.url = "github:srid/tailwind-haskell/master";
+    tailwind-haskell.url = "github:srid/tailwind-haskell";
     tailwind-haskell.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
@@ -22,16 +22,22 @@
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
         haskellProjects.default = {
           root = ./.;
+          haskellPackages = pkgs.haskell.packages.ghc923;
           buildTools = hp: {
             inherit (pkgs)
               treefmt
               nixpkgs-fmt
               foreman;
             inherit (hp)
-              cabal-fmt
+              # cabal-fmt (Broken on GHC 9.2.3)
               fourmolu;
             inherit (inputs'.tailwind-haskell.packages)
               tailwind;
+
+            # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
+            ghcid = pkgs.haskell.lib.overrideCabal hp.ghcid (drv: {
+              enableSeparateBinOutput = false;
+            });
           };
           source-overrides = {
             inherit (inputs)
@@ -40,6 +46,10 @@
           overrides = self: super: with pkgs.haskell.lib; {
             inherit (inputs'.tailwind-haskell.packages)
               tailwind;
+            relude = dontCheck (self.callHackage "relude" "1.1.0.0" { }); # 1.1 not in nixpkgs yet 
+            retry = dontCheck super.retry; # For GHC 9.2.
+            streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
+            http2 = dontCheck super.http2; # Fails on darwin
           };
         };
       };

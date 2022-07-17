@@ -1,56 +1,49 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Main where
 
 import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
-import Ema.Route.Generic
+import Ema.Route.Generic.TH
 import Ema.Route.Lib.Extra.StaticRoute qualified as SR
-import Generics.SOP qualified as SOP
 import Optics.Core (Prism', (%))
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
 
-data Route
-  = Route_Html HtmlRoute
-  | Route_Static StaticRoute
-  deriving stock (Eq, Show, Ord, Generic)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving
-    (HasSubRoutes, HasSubModels, IsRoute)
-    via ( GenericRoute
-            Route
-            '[ WithModel Model
-             , WithSubRoutes '[HtmlRoute, StaticRoute]
-             ]
-        )
-
-type StaticRoute = SR.StaticRoute "static"
+data Model = Model
+  { modelStatic :: SR.Model
+  }
+  deriving stock (Eq, Show, Generic)
 
 data HtmlRoute
   = HtmlRoute_Index
   | HtmlRoute_About
   deriving stock (Show, Eq, Ord, Generic, Enum, Bounded)
-  deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
-  deriving
-    (HasSubRoutes, HasSubModels, IsRoute)
-    via ( GenericRoute
-            HtmlRoute
-            '[ -- Note: On GHC 9.2, WithSubRoutes is automatically determined
-               WithSubRoutes
-                '[ FileRoute "index.html"
-                 , FileRoute "about.html"
-                 ]
-             ]
-        )
 
-data Model = Model
-  { modelStatic :: SR.Model
-  }
-  deriving stock (Eq, Show, Generic)
+deriveGeneric ''HtmlRoute
+deriveIsRoute ''HtmlRoute [t|'[]|]
+
+type StaticRoute = SR.StaticRoute "static"
+
+data Route
+  = Route_Html HtmlRoute
+  | Route_Static StaticRoute
+  deriving stock (Eq, Show, Ord, Generic)
+
+deriveGeneric ''Route
+deriveIsRoute
+  ''Route
+  [t|
+    [ -- To render a `Route` we need `Model`
+      WithModel Model
+    , -- Override default sub-route encoding (to avoid the prefix in encoded URLs)
+      WithSubRoutes [HtmlRoute, StaticRoute]
+    ]
+    |]
 
 instance EmaSite Route where
   siteInput cliAct () = do

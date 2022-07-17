@@ -12,7 +12,9 @@ jobs:
       - uses: cachix/install-nix-action@v17
         with:
           extra_nix_config: |
-            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            trusted-public-keys = cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+            substituters = https://cache.garnix.io https://cache.nixos.org/
       - name: Build sources 🔧
         run: |
           nix build -j 4
