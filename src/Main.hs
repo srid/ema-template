@@ -37,15 +37,7 @@ data HtmlRoute
   deriving anyclass (SOP.Generic, SOP.HasDatatypeInfo)
   deriving
     (HasSubRoutes, HasSubModels, IsRoute)
-    via ( GenericRoute
-            HtmlRoute
-            '[ -- Note: On GHC 9.2, WithSubRoutes is automatically determined
-               WithSubRoutes
-                '[ FileRoute "index.html"
-                 , FileRoute "about.html"
-                 ]
-             ]
-        )
+    via (GenericRoute HtmlRoute '[])
 
 data Model = Model
   { modelStatic :: SR.Model
