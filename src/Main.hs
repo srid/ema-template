@@ -40,8 +40,8 @@ deriveIsRoute
   [t|
     [ -- To render a `Route` we need `Model`
       WithModel Model
-    , -- Override default routes (to avoid its prefiix in URL)
-      WithSubRoutes '[HtmlRoute, StaticRoute]
+    , -- Override default sub-route encoding (to avoid the prefix in encoded URLs)
+      WithSubRoutes [HtmlRoute, StaticRoute]
     ]
     |]
 
