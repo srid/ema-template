@@ -3,11 +3,11 @@
     "ema": {
       "flake": false,
       "locked": {
-        "lastModified": 1658070756,
-        "narHash": "sha256-2+LrW2TY5+2gTKAyX0DY4RIEavOlwT3xQEfVBT6EyV0=",
+        "lastModified": 1658331162,
+        "narHash": "sha256-13PYisWFUbrS+HOegqBMA1SRuG5fZNOVXccAlfOIylY=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "51b0587db1df83f9c835810fbd4914e9f0a76f5e",
+        "rev": "67da7235a14e93e468112bb8d2217fb0e092304b",
         "type": "github"
       },
       "original": {

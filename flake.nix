@@ -46,6 +46,7 @@
           overrides = self: super: with pkgs.haskell.lib; {
             inherit (inputs'.tailwind-haskell.packages)
               tailwind;
+            type-errors-pretty = dontCheck (doJailbreak super.type-errors-pretty);
             relude = dontCheck (self.callHackage "relude" "1.1.0.0" { }); # 1.1 not in nixpkgs yet 
             retry = dontCheck super.retry; # For GHC 9.2.
             streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
