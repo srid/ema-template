@@ -23,7 +23,7 @@ jobs:
           mkdir ./output
           export TARGET=$(pwd)/output
           nix develop -c tailwind-run -o static/tailwind.css 'src/**/*.hs' 
-          ./result/bin/ema-template gen $TARGET
+          ./result/bin/ema-template --base-url=/ema-template/ gen $TARGET
       - name: Deploy to gh-pages 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:
