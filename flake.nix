@@ -28,8 +28,9 @@
               treefmt
               nixpkgs-fmt
               foreman;
+            inherit (pkgs.haskellPackages)
+              cabal-fmt;
             inherit (hp)
-              # cabal-fmt (Broken on GHC 9.2.4)
               fourmolu;
             inherit (inputs'.tailwind-haskell.packages)
               tailwind;

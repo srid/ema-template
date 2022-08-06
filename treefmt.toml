@@ -11,10 +11,10 @@ options = [
 ]
 includes = ["*.hs"]
 
-# [formatter.cabal]
-# command = "cabal-fmt"
-# options = ["--inplace"]
-# includes = ["*.cabal"]
+[formatter.cabal]
+command = "cabal-fmt"
+options = ["--inplace"]
+includes = ["*.cabal"]
 
 [formatter.nix]
 command = "nixpkgs-fmt"
