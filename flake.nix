@@ -54,6 +54,7 @@
             http2 = dontCheck super.http2; # Fails on darwin
           };
         };
+        apps.tailwind.program = inputs'.tailwind-haskell.packages.tailwind;
       };
     };
 }
