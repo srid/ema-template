@@ -22,14 +22,14 @@
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
         haskellProjects.default = {
           root = ./.;
-          haskellPackages = pkgs.haskell.packages.ghc923;
+          haskellPackages = pkgs.haskell.packages.ghc924;
           buildTools = hp: {
             inherit (pkgs)
               treefmt
               nixpkgs-fmt
               foreman;
             inherit (hp)
-              # cabal-fmt (Broken on GHC 9.2.3)
+              # cabal-fmt (Broken on GHC 9.2.4)
               fourmolu;
             inherit (inputs'.tailwind-haskell.packages)
               tailwind;

@@ -40,7 +40,7 @@ deriveIsRoute
   [t|
     [ -- To render a `Route` we need `Model`
       WithModel Model
-    , -- Override default sub-route encoding (to avoid the prefix in encoded URLs)
+    , -- Override default sub-route encoding (to avoid the folder prefix in encoded URLs)
       WithSubRoutes [HtmlRoute, StaticRoute]
     ]
     |]
@@ -51,7 +51,7 @@ instance EmaSite Route where
     pure $ Model <$> staticRouteDyn
   siteOutput rp m = \case
     Route_Html r ->
-      Ema.AssetGenerated Ema.Html $ renderHtmlRoute rp m r
+      pure $ Ema.AssetGenerated Ema.Html $ renderHtmlRoute rp m r
     Route_Static r ->
       siteOutput (rp % (_As @"Route_Static")) (modelStatic m) r
 

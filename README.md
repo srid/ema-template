@@ -29,8 +29,8 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 - Configuration:
   - To change the port (or the Ema CLI arguments, used by `bin/run`), see `./.ghcid` (if you leave out `--port` a random port will be used)
   - To update Ema to the latest Git revision, run `nix flake lock --update-input ema` or just `nix flake update` (the latter updates all Nix inputs)
-    - Be sure to check https://ema.srid.ca/guide/upgrade for changes needed.
-  - To add/remove Haskell dependencies, see the .cabal file. If a dependency is unavailable in nixpkgs, you can override it (to point to say a Git repo) in the `source-overrides` (or `overrides` if you need more power) attribute of flake.nix. You can imitate the manner in which the `ema` package itself is overridden.
+    - Be sure to check https://ema.srid.ca/start/upgrade for changes needed.
+  - To add/remove Haskell dependencies, see the .cabal file. If a dependency is unavailable in nixpkgs, you can override it (to point to say a Git repo) in the `source-overrides` (or `overrides` if you need more power) attribute of flake.nix. You can imitate the `ema` package itself is overridden.
 - To generate the site, run:
   ```sh
   mkdir ../output 
