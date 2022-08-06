@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -5,16 +6,19 @@ module Main where
 
 import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
+import Ema.CLI qualified
 import Ema.Route.Generic.TH
 import Ema.Route.Lib.Extra.StaticRoute qualified as SR
 import Optics.Core (Prism', (%))
+import Options.Applicative
 import Text.Blaze.Html.Renderer.Utf8 qualified as RU
 import Text.Blaze.Html5 ((!))
 import Text.Blaze.Html5 qualified as H
 import Text.Blaze.Html5.Attributes qualified as A
 
 data Model = Model
-  { modelStatic :: SR.Model
+  { modelBaseUrl :: Text
+  , modelStatic :: SR.Model
   }
   deriving stock (Eq, Show, Generic)
 
@@ -45,9 +49,10 @@ deriveIsRoute
     |]
 
 instance EmaSite Route where
-  siteInput cliAct () = do
+  type SiteArg Route = CliArgs
+  siteInput cliAct CliArgs {cliArgsBaseUrl} = do
     staticRouteDyn <- siteInput @StaticRoute cliAct ()
-    pure $ Model <$> staticRouteDyn
+    pure $ Model cliArgsBaseUrl <$> staticRouteDyn
   siteOutput rp m = \case
     Route_Html r ->
       pure $ Ema.AssetGenerated Ema.Html $ renderHtmlRoute rp m r
@@ -69,7 +74,7 @@ renderHead rp model r = do
   H.meta ! A.charset "UTF-8"
   H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
   H.title $ H.toHtml $ routeTitle r <> " - Ema Template"
-  H.base ! A.href "/"
+  H.base ! A.href (H.toValue $ modelBaseUrl model)
   H.link ! A.rel "stylesheet" ! A.href (staticRouteUrl rp model "tailwind.css")
 
 renderBody :: Prism' FilePath Route -> Model -> HtmlRoute -> H.Html
@@ -110,5 +115,39 @@ staticRouteUrl :: IsString r => Prism' FilePath Route -> Model -> FilePath -> r
 staticRouteUrl rp m =
   SR.staticRouteUrl (rp % (_As @"Route_Static")) (modelStatic m)
 
+-- CLI argument handling
+-- ---------------------
+
+data CliArgs = CliArgs
+  { cliArgsBaseUrl :: Text
+  , cliArgsEmaCli :: Ema.CLI.Cli
+  }
+  deriving stock (Eq, Show)
+
+parseCliArgs :: IO CliArgs
+parseCliArgs =
+  execParser $ parserInfo cliParser
+  where
+    cliParser :: Parser CliArgs
+    cliParser =
+      CliArgs
+        <$> (option str $ long "base-url" <> metavar "BASE_URL" <> help "Base URL to use in <base>" <> value "/")
+        <*> Ema.CLI.cliParser
+    parserInfo :: Parser a -> ParserInfo a
+    parserInfo p =
+      info
+        (versionOption <*> p <**> helper)
+        ( fullDesc
+            <> progDesc "ema-template: TODO"
+            <> header "ema-template"
+        )
+      where
+        versionOption = infoOption "0.1" (long "version" <> help "Show version")
+
+-- Main entrypoint
+-- ---------------
+
 main :: IO ()
-main = Ema.runSite_ @Route ()
+main = do
+  cliArgs <- parseCliArgs
+  void $ Ema.runSiteWithCli @Route (cliArgsEmaCli cliArgs) cliArgs

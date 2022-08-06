@@ -30,15 +30,16 @@ executable ema-template
     , containers
     , data-default
     , directory
-    , ema             >=0.8
+    , ema                   >=0.8
     , filepath
     , generic-optics
     , monad-logger
     , optics-core
-    , relude          >=1.0
+    , optparse-applicative
+    , relude                >=1.0
     , text
     , time
-    , unionmount      >=0.2
+    , unionmount            >=0.2
     , unliftio
 
   mixins:
