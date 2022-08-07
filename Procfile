@@ -1,2 +1,2 @@
 main: bin/run-haskell
-tailwind: cd static && tailwind-run -w -o tailwind.css '../src/**/*.hs' 
+tailwind: tailwind-run -w -o ./static/tailwind.css './src/**/*.hs'

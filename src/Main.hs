@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -50,9 +49,9 @@ deriveIsRoute
 
 instance EmaSite Route where
   type SiteArg Route = CliArgs
-  siteInput cliAct CliArgs {cliArgsBaseUrl} = do
+  siteInput cliAct args = do
     staticRouteDyn <- siteInput @StaticRoute cliAct ()
-    pure $ Model cliArgsBaseUrl <$> staticRouteDyn
+    pure $ Model (cliArgsBaseUrl args) <$> staticRouteDyn
   siteOutput rp m = \case
     Route_Html r ->
       pure $ Ema.AssetGenerated Ema.Html $ renderHtmlRoute rp m r
