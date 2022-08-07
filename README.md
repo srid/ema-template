@@ -34,9 +34,8 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 - To generate the site, run:
   ```sh
   mkdir ../output 
-  nix run . -- gen ../output
+  nix run . -- gen --base-url=/ ../output
   ```
-  - You might want to change or remove the `<base>` tag in `Main.hs` depending on where you will be deploying the site.
 
 ## Non-Nix workflow
 
