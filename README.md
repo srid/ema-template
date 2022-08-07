@@ -34,7 +34,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 - To generate the site, run:
   ```sh
   mkdir ../output 
-  nix run . -- gen --base-url=/ ../output
+  nix run . -- --base-url=/ gen ../output
   ```
 
 ## Non-Nix workflow
