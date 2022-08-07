@@ -2,7 +2,7 @@ cabal-version:      2.4
 name:               ema-template
 version:            0.1.0.0
 license:            AGPL-3.0-only
-copyright:          2021 Sridhar Ratnakumar
+copyright:          2022 Sridhar Ratnakumar
 maintainer:         srid@srid.ca
 author:             Sridhar Ratnakumar
 category:           Web
@@ -27,29 +27,20 @@ executable ema-template
     , base
     , blaze-html
     , blaze-markup
-    , commonmark-simple
     , containers
     , data-default
-    , dependent-sum
     , directory
-    , ema                 >=0.6
+    , ema                   >=0.8
     , filepath
-    , lvar
+    , generic-optics
     , monad-logger
-    , neat-interpolation
-    , pandoc
-    , pandoc-types
-    , pathtree
-    , relude
-    , shower
-    , some
-    , tagged
+    , optics-core
+    , optparse-applicative
+    , relude                >=1.0
     , text
     , time
-    , unionmount
+    , unionmount            >=0.2
     , unliftio
-    , url-slug
-    , uuid
 
   mixins:
     base hiding (Prelude),
@@ -59,13 +50,14 @@ executable ema-template
   ghc-options:
     -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns
     -Wmissing-deriving-strategies -Wunused-foralls -Wunused-foralls
-    -fprint-explicit-foralls -fprint-explicit-kinds
+    -fprint-explicit-foralls -fprint-explicit-kinds -threaded
 
   default-extensions:
     NoStarIsType
     BangPatterns
     ConstraintKinds
     DataKinds
+    DeriveAnyClass
     DeriveDataTypeable
     DeriveFoldable
     DeriveFunctor

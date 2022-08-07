@@ -9,22 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v13
+      - uses: cachix/install-nix-action@v17
         with:
-          install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
-          install_options: "--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve"
           extra_nix_config: |
-            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            trusted-public-keys = cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+            substituters = https://cache.garnix.io https://cache.nixos.org/
       - name: Build sources 🔧
         run: |
-          nix build
+          nix build -j 4
       - name: Generate HTML 🔧
         run: |
           mkdir ./output
           export TARGET=$(pwd)/output
-          nix develop -c tailwind-run -o content/static/tailwind.css 'src/**/*.hs' 
-          cd ./content
-          ../result/bin/ema-template gen $TARGET
+          nix run .#tailwind -- -o static/tailwind.css 'src/**/*.hs' 
+          ./result/bin/ema-template --base-url=/ema-template/ gen $TARGET
       - name: Deploy to gh-pages 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:
