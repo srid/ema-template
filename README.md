@@ -10,7 +10,7 @@ To develop with full IDE support in Visual Studio Code, follow these steps:
 
 - [Install Nix](https://nixos.org/download.html) & [enable Flakes](https://nixos.wiki/wiki/Flakes)
 - Setup the [garnix cache](https://garnix.io/docs/caching) (Nix binary cache), unless you are okay with compiling for hours.
-- Run `nix develop -c haskell-language-server` to sanity check your environment 
+- Run `nix develop -i -c haskell-language-server` to sanity check your environment 
 - Open the repository [as single-folder workspace](https://code.visualstudio.com/docs/editor/workspaces#_singlefolder-workspaces) in Visual Studio Code
     - Install the recommended extensions
     - <kbd>Ctrl+Shift+P</kbd> to run the command "Nix-Env: Select Environment" and select `shell.nix`. The extension will ask you to reload VSCode at the end.

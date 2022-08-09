@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -xe
 
-exec nix develop -c foreman start
+exec nix develop -i -c foreman start
