@@ -3,7 +3,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
 
     # Haskell overrides
@@ -22,6 +21,7 @@
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
         haskellProjects.default = {
           root = ./.;
+          name = "ema-template";
           haskellPackages = pkgs.haskell.packages.ghc924;
           buildTools = hp: {
             inherit (pkgs)
