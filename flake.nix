@@ -3,7 +3,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-parts.inputs.nixpkgs.follows = "nixpkgs";
     haskell-flake.url = "github:srid/haskell-flake";
 
     # Haskell overrides
@@ -21,7 +20,7 @@
       perSystem = { self', inputs', pkgs, ... }: {
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
         haskellProjects.default = {
-          root = ./.;
+          packages.ema-template.root = ./.;
           haskellPackages = pkgs.haskell.packages.ghc924;
           buildTools = hp: {
             inherit (pkgs)
@@ -52,6 +51,7 @@
             retry = dontCheck super.retry; # For GHC 9.2.
             streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
             http2 = dontCheck super.http2; # Fails on darwin
+            hls-explicit-fixity-plugin = dontCheck super.hls-explicit-fixity-plugin;
           };
         };
         apps.tailwind.program = inputs'.tailwind-haskell.packages.tailwind;
