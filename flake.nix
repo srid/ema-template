@@ -17,7 +17,7 @@
       imports = [
         haskell-flake.flakeModule
       ];
-      perSystem = { self', inputs', pkgs, ... }: {
+      perSystem = { self', config, inputs', pkgs, ... }: {
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
         haskellProjects.default = {
           packages.ema-template.root = ./.;
@@ -54,6 +54,7 @@
             hls-explicit-fixity-plugin = dontCheck super.hls-explicit-fixity-plugin;
           };
         };
+        packages.default = config.packages.ema-template;
         apps.tailwind.program = inputs'.tailwind-haskell.packages.tailwind;
       };
     };
