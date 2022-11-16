@@ -39,7 +39,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 
 ## Non-Nix workflow
 
-To use this repository without Nix, such as with plain Cabal or Stack, you need to have the following installed manually:
+To use this repository without Nix (such as with plain Cabal or Stack) you need to have the following installed manually:
 
 - ghcid (used by `bin/run-haskell` which `./Procfile` invokes)
 - [tailwind runner](https://hackage.haskell.org/package/tailwind) along with [tailwind CLI](https://tailwindcss.com/docs/installation)
