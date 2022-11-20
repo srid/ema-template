@@ -30,7 +30,9 @@ executable ema-template
     , containers
     , data-default
     , directory
-    , ema                   >=0.8.2
+    , ema                   >=0.10
+    , ema-generics                   >=0.10
+    , ema-extra                   >=0.10
     , filepath
     , generic-optics
     , monad-logger
