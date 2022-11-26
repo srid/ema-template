@@ -40,8 +40,9 @@
             });
           };
           source-overrides = {
-            inherit (inputs)
-              ema;
+            ema = inputs.ema + /ema;
+            ema-generics = inputs.ema + /ema-generics;
+            ema-extra = inputs.ema + /ema-extra;
           };
           overrides = self: super: with pkgs.haskell.lib; {
             inherit (inputs'.tailwind-haskell.packages)
