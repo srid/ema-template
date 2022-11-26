@@ -26,7 +26,7 @@
               nixpkgs-fmt
               foreman;
             inherit (pkgs.haskellPackages)
-              cabal-fmt;
+              cabal-fmt tailwind;
             inherit (hp)
               fourmolu;
 
@@ -50,7 +50,7 @@
           };
         };
         packages.default = config.packages.ema-template;
-        apps.tailwind.program = inputs'.tailwind-haskell.packages.tailwind;
+        apps.tailwind.program = pkgs.haskellPackages.tailwind;
       };
     };
 }
