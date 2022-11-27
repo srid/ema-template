@@ -96,9 +96,11 @@ renderNavbar rp currentRoute =
   H.nav ! A.class_ "w-full text-xl font-bold flex space-x-4  mb-4" $ do
     forM_ (universe @HtmlRoute) $ \r ->
       let extraClass = if r == currentRoute then "bg-rose-400 text-white" else "text-gray-700"
-       in H.a ! A.href (H.toValue $ routeUrl rp $ Route_Html r)
+       in H.a
+            ! A.href (H.toValue $ routeUrl rp $ Route_Html r)
             ! A.class_ ("rounded p-2 " <> extraClass)
-            $ H.toHtml $ routeTitle r
+            $ H.toHtml
+            $ routeTitle r
 
 routeTitle :: HtmlRoute -> Text
 routeTitle r = case r of
@@ -107,7 +109,8 @@ routeTitle r = case r of
 
 routeLink :: Prism' FilePath Route -> HtmlRoute -> H.Html -> H.Html
 routeLink rp r =
-  H.a ! A.href (H.toValue $ routeUrl rp $ Route_Html r)
+  H.a
+    ! A.href (H.toValue $ routeUrl rp $ Route_Html r)
     ! A.class_ "text-rose-400"
 
 -- | Link to a file under ./static
