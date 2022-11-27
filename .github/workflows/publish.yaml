@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - nixify-static-build
 jobs:
   ema:
     runs-on: ubuntu-latest
