@@ -49,19 +49,25 @@
             hls-explicit-fixity-plugin = dontCheck super.hls-explicit-fixity-plugin;
           };
         };
-        packages = {
-          default = config.packages.ema-template;
-          site = pkgs.runCommand "site"
-            { }
-            ''
-              mkdir -p $out
-              pushd ${self}
-              ${lib.getExe config.packages.default} \
-                --base-url=/ema-template/ gen $out
-              ${lib.getExe pkgs.haskellPackages.tailwind} \
-                -o $out/tailwind.css 'src/**/*.hs' 
-            '';
-        };
+        packages =
+          let
+            buildEmaSiteWithTailwind = { baseUrl }:
+              pkgs.runCommand "site"
+                { }
+                ''
+                  mkdir -p $out
+                  pushd ${self}
+                  ${lib.getExe config.packages.default} \
+                    --base-url=${baseUrl} gen $out
+                  ${lib.getExe pkgs.haskellPackages.tailwind} \
+                    -o $out/tailwind.css 'src/**/*.hs' 
+                '';
+          in
+          {
+            default = config.packages.ema-template;
+            site = buildEmaSiteWithTailwind { baseUrl = "/"; };
+            site-github = buildEmaSiteWithTailwind { baseUrl = "/ema-template/"; };
+          };
       };
     };
 }

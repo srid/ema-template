@@ -18,7 +18,7 @@ jobs:
             substituters = https://cache.garnix.io https://cache.nixos.org/
       - name: Build sources & site 🔧
         run: |
-          nix build .#site -j 4
+          nix build .#site-github -j 4
       - name: Deploy to gh-pages 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:
