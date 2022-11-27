@@ -20,6 +20,11 @@ extra-source-files:
   LICENSE
   README.md
 
+data-dir:           static 
+data-files:
+  *.css
+  *.svg
+
 executable ema-template
   build-depends:
     , aeson

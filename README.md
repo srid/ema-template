@@ -33,8 +33,10 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
   - To add/remove Haskell dependencies, see the .cabal file. If a dependency is unavailable in nixpkgs, you can override it (to point to say a Git repo) in the `source-overrides` (or `overrides` if you need more power) attribute of flake.nix. You can imitate the `ema` package itself is overridden.
 - To generate the site, run:
   ```sh
-  mkdir ../output 
-  nix run . -- --base-url=/ gen ../output
+  nix build .#site
+  # Alternatively:
+  # > mkdir ../output 
+  # > nix run . -- --base-url=/ gen ../output
   ```
 
 ## Non-Nix workflow

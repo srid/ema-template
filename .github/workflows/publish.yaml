@@ -15,17 +15,11 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
             trusted-public-keys = cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
             substituters = https://cache.garnix.io https://cache.nixos.org/
-      - name: Build sources 🔧
+      - name: Build sources & site 🔧
         run: |
-          nix build -j 4
-      - name: Generate HTML 🔧
-        run: |
-          mkdir ./output
-          export TARGET=$(pwd)/output
-          nix run .#tailwind -- -o static/tailwind.css 'src/**/*.hs' 
-          ./result/bin/ema-template --base-url=/ema-template/ gen $TARGET
+          nix build .#site-github -j 4
       - name: Deploy to gh-pages 🚀
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: output
+          publish_dir: result
