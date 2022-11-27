@@ -6,10 +6,8 @@
     haskell-flake.url = "github:srid/haskell-flake";
 
     # Haskell overrides
-    ema.url = "github:srid/ema/master";
+    ema.url = "github:srid/ema";
     ema.flake = false;
-    tailwind-haskell.url = "github:srid/tailwind-haskell";
-    tailwind-haskell.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
@@ -28,11 +26,9 @@
               nixpkgs-fmt
               foreman;
             inherit (pkgs.haskellPackages)
-              cabal-fmt;
+              cabal-fmt tailwind;
             inherit (hp)
               fourmolu;
-            inherit (inputs'.tailwind-haskell.packages)
-              tailwind;
 
             # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
             ghcid = pkgs.haskell.lib.overrideCabal hp.ghcid (drv: {
@@ -45,8 +41,6 @@
             ema-extra = inputs.ema + /ema-extra;
           };
           overrides = self: super: with pkgs.haskell.lib; {
-            inherit (inputs'.tailwind-haskell.packages)
-              tailwind;
             type-errors-pretty = dontCheck (doJailbreak super.type-errors-pretty);
             relude = dontCheck (self.callHackage "relude" "1.1.0.0" { }); # 1.1 not in nixpkgs yet 
             retry = dontCheck super.retry; # For GHC 9.2.
@@ -56,7 +50,7 @@
           };
         };
         packages.default = config.packages.ema-template;
-        apps.tailwind.program = inputs'.tailwind-haskell.packages.tailwind;
+        apps.tailwind.program = pkgs.haskellPackages.tailwind;
       };
     };
 }
