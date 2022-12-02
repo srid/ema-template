@@ -8,7 +8,7 @@ The generated HTML site can be previewed here: https://emaapps.github.io/ema-tem
 
 To develop with full IDE support in Visual Studio Code, follow these steps:
 
-- [Install Nix](https://nixos.org/download.html) & [enable Flakes](https://nixos.wiki/wiki/Flakes)
+- [Install Nix](https://nixos.org/download.html) & [enable Flakes](https://nixos.wiki/wiki/Flakes#Enable_flakes)
 - Setup the [garnix cache](https://garnix.io/docs/caching) (Nix binary cache), unless you are okay with compiling for hours.
 - Run `nix develop -i -c haskell-language-server` to sanity check your environment 
 - Open the repository [as single-folder workspace](https://code.visualstudio.com/docs/editor/workspaces#_singlefolder-workspaces) in Visual Studio Code
