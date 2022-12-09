@@ -83,12 +83,29 @@
         "type": "github"
       }
     },
+    "pc": {
+      "locked": {
+        "lastModified": 1670532145,
+        "narHash": "sha256-lnI7bLx4tr/luP0+7H2l0KaxuDQqA9hmBgzB93KngnE=",
+        "owner": "Platonic-Systems",
+        "repo": "process-compose-flake",
+        "rev": "9b37aa3e7ea5125bc83852e8b21c37594774a546",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Platonic-Systems",
+        "ref": "initial-impl",
+        "repo": "process-compose-flake",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "ema": "ema",
         "flake-parts": "flake-parts",
         "haskell-flake": "haskell-flake",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "pc": "pc"
       }
     }
   },

@@ -8,12 +8,15 @@
     # Haskell overrides
     ema.url = "github:srid/ema";
     ema.flake = false;
+
+    pc.url = "github:Platonic-Systems/process-compose-flake/initial-impl";
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
         haskell-flake.flakeModule
+        inputs.pc.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }: {
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
@@ -30,6 +33,7 @@
             inherit (hp)
               fourmolu;
 
+            inherit (config.packages) run;
             # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
             ghcid = pkgs.haskell.lib.overrideCabal hp.ghcid (drv: {
               enableSeparateBinOutput = false;
@@ -48,6 +52,10 @@
             http2 = dontCheck super.http2; # Fails on darwin
             hls-explicit-fixity-plugin = dontCheck super.hls-explicit-fixity-plugin;
           };
+        };
+        process-compose.configs.run = {
+          haskell.command = "${lib.getExe pkgs.haskellPackages.ghcid}";
+          tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
         };
         packages =
           let
