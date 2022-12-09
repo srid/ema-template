@@ -53,7 +53,7 @@
             hls-explicit-fixity-plugin = dontCheck super.hls-explicit-fixity-plugin;
           };
         };
-        process-compose.configs.run = {
+        process-compose.configs.run.processes = {
           haskell.command = "${lib.getExe pkgs.haskellPackages.ghcid}";
           tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
         };
