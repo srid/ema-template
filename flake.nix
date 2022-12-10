@@ -25,14 +25,14 @@
           buildTools = hp: {
             inherit (pkgs)
               treefmt
-              nixpkgs-fmt
-              foreman;
+              nixpkgs-fmt;
             inherit (pkgs.haskellPackages)
               cabal-fmt tailwind;
             inherit (hp)
               fourmolu;
 
             inherit (config.packages)
+              # "run" is provided by `processes.groups.run` below.
               run;
 
             # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
