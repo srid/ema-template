@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-set -xe
-
-# This will run ghcid, which uses `./.ghcid` to invoke your program main entry
-# point, with the specified args.
-#
-# If you change ./.ghcid, ghcid will automatically reload.
-ghcid
