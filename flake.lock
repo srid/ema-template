@@ -83,12 +83,28 @@
         "type": "github"
       }
     },
+    "proc-flake": {
+      "locked": {
+        "lastModified": 1670699061,
+        "narHash": "sha256-ir8Jho1Wuv2oNw3tBckNCAjJ57W8zebl/Y0xjJWT4WE=",
+        "owner": "srid",
+        "repo": "proc-flake",
+        "rev": "0ce7a068affc78cc1c29757abcae39da941f0680",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "proc-flake",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "ema": "ema",
         "flake-parts": "flake-parts",
         "haskell-flake": "haskell-flake",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "proc-flake": "proc-flake"
       }
     }
   },
