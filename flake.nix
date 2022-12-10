@@ -4,16 +4,18 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
+    proc-flake.url = "github:srid/proc-flake";
 
     # Haskell overrides
     ema.url = "github:srid/ema";
     ema.flake = false;
   };
-  outputs = inputs@{ self, nixpkgs, flake-parts, haskell-flake, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit self; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
-        haskell-flake.flakeModule
+        inputs.haskell-flake.flakeModule
+        inputs.proc-flake.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }: {
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
@@ -29,6 +31,9 @@
               cabal-fmt tailwind;
             inherit (hp)
               fourmolu;
+
+            inherit (config.packages)
+              run;
 
             # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
             ghcid = pkgs.haskell.lib.overrideCabal hp.ghcid (drv: {
@@ -48,6 +53,10 @@
             http2 = dontCheck super.http2; # Fails on darwin
             hls-explicit-fixity-plugin = dontCheck super.hls-explicit-fixity-plugin;
           };
+        };
+        proc.groups.run.processes = {
+          haskell.command = "${lib.getExe pkgs.haskellPackages.ghcid}";
+          tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
         };
         packages =
           let
