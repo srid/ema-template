@@ -85,11 +85,11 @@
     },
     "proc-flake": {
       "locked": {
-        "lastModified": 1670699061,
-        "narHash": "sha256-ir8Jho1Wuv2oNw3tBckNCAjJ57W8zebl/Y0xjJWT4WE=",
+        "lastModified": 1670709078,
+        "narHash": "sha256-lGiGnYDX1W0XambHtaemj+zQCx7yQVmdravkOB1Z3oQ=",
         "owner": "srid",
         "repo": "proc-flake",
-        "rev": "0ce7a068affc78cc1c29757abcae39da941f0680",
+        "rev": "2fd76cf9c2399f5d8000bffb1cc34112cf04c3da",
         "type": "github"
       },
       "original": {
