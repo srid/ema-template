@@ -4,14 +4,14 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
-    proc-flake.url = "github:srid/proc-flake";
+    proc-flake.url = "github:srid/proc-flake/try";
 
     # Haskell overrides
     ema.url = "github:srid/ema";
     ema.flake = false;
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit self; } {
+    flake-parts.lib.mkFlake { inherit inputs; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
         inputs.haskell-flake.flakeModule
@@ -31,9 +31,8 @@
             inherit (hp)
               fourmolu;
 
-            inherit (config.packages)
-              # "run" is provided by `processes.groups.run` below.
-              run;
+            # "run" is provided by `proc.groups.run` below.
+            run = config.proc.groups.run.package;
 
             # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
             ghcid = pkgs.haskell.lib.overrideCabal hp.ghcid (drv: {

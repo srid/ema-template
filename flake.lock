@@ -21,11 +21,11 @@
         "nixpkgs-lib": "nixpkgs-lib"
       },
       "locked": {
-        "lastModified": 1668450977,
-        "narHash": "sha256-cfLhMhnvXn6x1vPm+Jow3RiFAUSCw/l1utktCw5rVA4=",
+        "lastModified": 1671322946,
+        "narHash": "sha256-J8Qj+ITV+eti+irTK9Zn2LZVYoIW2g7irPUckU8yZvU=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "d591857e9d7dd9ddbfba0ea02b43b927c3c0f1fa",
+        "rev": "3f7172646953bf86dad5953bc45f0edae62ac445",
         "type": "github"
       },
       "original": {
@@ -103,15 +103,16 @@
         "flake-root": "flake-root"
       },
       "locked": {
-        "lastModified": 1671378855,
-        "narHash": "sha256-bP++lCeUzn9/HMzAr5s0Hakk81tudefHz7zq0Lno7x4=",
+        "lastModified": 1671386626,
+        "narHash": "sha256-ppR9cMCbQW7AcduqoZJyslCoSrsgmaVS8du29ywNsfI=",
         "owner": "srid",
         "repo": "proc-flake",
-        "rev": "35e8d11eef5303238dbcd488cb72bd2428adb26e",
+        "rev": "854c377ed3f661773d7ca4626da9a274bca06dec",
         "type": "github"
       },
       "original": {
         "owner": "srid",
+        "ref": "try",
         "repo": "proc-flake",
         "type": "github"
       }
