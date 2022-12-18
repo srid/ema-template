@@ -58,7 +58,33 @@
           haskell.command = "${lib.getExe pkgs.haskellPackages.ghcid}";
           tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
         };
-        mission-control.scripts.run.package = config.proc.groups.run.package;
+        mission-control.scripts = {
+          docs = {
+            description = "Start Hoogle server for project dependencies";
+            command = ''
+              echo http://127.0.0.1:8888
+              hoogle serve -p 8888 --local
+            '';
+            category = "Dev Tools";
+          };
+          repl = {
+            description = "Start the cabal repl";
+            command = ''
+              cabal repl "$@"
+            '';
+            category = "Dev Tools";
+          };
+          fmt = {
+            description = "Auto-format the source tree";
+            command = "treefmt";
+            category = "Dev Tools";
+          };
+          run = {
+            description = "Run the project with ghcid auto-recompile";
+            package = config.proc.groups.run.package;
+            category = "Primary";
+          };
+        };
         packages =
           let
             buildEmaSiteWithTailwind = { baseUrl }:

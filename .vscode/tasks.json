@@ -12,6 +12,7 @@
             "args": [
                 "develop",
                 "-c",
+                ",",
                 "run"
             ],
             "problemMatcher": [],
