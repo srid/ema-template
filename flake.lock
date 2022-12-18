@@ -36,11 +36,11 @@
     },
     "flake-root": {
       "locked": {
-        "lastModified": 1671301732,
-        "narHash": "sha256-Gk+8PvIG66UMhx0F9wsgpMQ5KdzAhcXAJHKZpym1aYA=",
+        "lastModified": 1671378805,
+        "narHash": "sha256-yqGxyzMN2GuppwG3dTWD1oiKxi+jGYP7D1qUSc5vKhI=",
         "owner": "srid",
         "repo": "flake-root",
-        "rev": "972a7da22ac2c8cd14e07ce5a476047dec94f2a6",
+        "rev": "dc7ba6166e478804a9da6881aa48c45d300075cf",
         "type": "github"
       },
       "original": {
@@ -64,13 +64,32 @@
         "type": "github"
       }
     },
+    "mission-control": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1671387872,
+        "narHash": "sha256-/7XF0yJla5YEJeCYahLYUREz6T036flCdXt3ZpxgSII=",
+        "owner": "Platonic-Systems",
+        "repo": "mission-control",
+        "rev": "4ed9d77c2779c9e891a58282176641f4f3f43952",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Platonic-Systems",
+        "ref": "explicit-flake-root",
+        "repo": "mission-control",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1670058159,
-        "narHash": "sha256-ERiP2JWanLuGV1PDyHTbcigFCfIi9oco5LFdMJHjREE=",
+        "lastModified": 1671249438,
+        "narHash": "sha256-5e+CcnbZA3/i2BRXbnzRS52Ly67MUNdZR+Zpbb2C65k=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "49b8ad618e64d9fe9ab686817bfebe047860dcae",
+        "rev": "067bfc6c90a301572cec7da48f09c447a9a8eae0",
         "type": "github"
       },
       "original": {
@@ -98,21 +117,34 @@
         "type": "github"
       }
     },
-    "proc-flake": {
-      "inputs": {
-        "flake-root": "flake-root"
-      },
+    "nixpkgs_2": {
       "locked": {
-        "lastModified": 1671386626,
-        "narHash": "sha256-ppR9cMCbQW7AcduqoZJyslCoSrsgmaVS8du29ywNsfI=",
+        "lastModified": 1670058159,
+        "narHash": "sha256-ERiP2JWanLuGV1PDyHTbcigFCfIi9oco5LFdMJHjREE=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "49b8ad618e64d9fe9ab686817bfebe047860dcae",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "proc-flake": {
+      "locked": {
+        "lastModified": 1671388248,
+        "narHash": "sha256-gfnmbsb3SWry4m0yRFJIRmuls98KAf2a3vo8AHV+tFw=",
         "owner": "srid",
         "repo": "proc-flake",
-        "rev": "854c377ed3f661773d7ca4626da9a274bca06dec",
+        "rev": "6fee2793889a791647bf9231c27dd12a8777690c",
         "type": "github"
       },
       "original": {
         "owner": "srid",
-        "ref": "try",
+        "ref": "explicit-flake-root",
         "repo": "proc-flake",
         "type": "github"
       }
@@ -121,8 +153,10 @@
       "inputs": {
         "ema": "ema",
         "flake-parts": "flake-parts",
+        "flake-root": "flake-root",
         "haskell-flake": "haskell-flake",
-        "nixpkgs": "nixpkgs",
+        "mission-control": "mission-control",
+        "nixpkgs": "nixpkgs_2",
         "proc-flake": "proc-flake"
       }
     }

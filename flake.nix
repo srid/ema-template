@@ -4,7 +4,9 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
-    proc-flake.url = "github:srid/proc-flake/try";
+    flake-root.url = "github:srid/flake-root";
+    proc-flake.url = "github:srid/proc-flake/explicit-flake-root";
+    mission-control.url = "github:Platonic-Systems/mission-control/explicit-flake-root";
 
     # Haskell overrides
     ema.url = "github:srid/ema";
@@ -15,11 +17,13 @@
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
         inputs.haskell-flake.flakeModule
+        inputs.flake-root.flakeModule
         inputs.proc-flake.flakeModule
+        inputs.mission-control.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }: {
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
-        haskellProjects.default = {
+        haskellProjects.main = {
           packages.ema-template.root = ./.;
           haskellPackages = pkgs.haskell.packages.ghc924;
           buildTools = hp: {
@@ -30,9 +34,6 @@
               cabal-fmt tailwind;
             inherit (hp)
               fourmolu;
-
-            # "run" is provided by `proc.groups.run` below.
-            run = config.proc.groups.run.package;
 
             # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
             ghcid = pkgs.haskell.lib.overrideCabal hp.ghcid (drv: {
@@ -57,6 +58,7 @@
           haskell.command = "${lib.getExe pkgs.haskellPackages.ghcid}";
           tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
         };
+        mission-control.scripts.run.package = config.proc.groups.run.package;
         packages =
           let
             buildEmaSiteWithTailwind = { baseUrl }:
@@ -72,10 +74,11 @@
                 '';
           in
           {
-            default = config.packages.ema-template;
+            default = config.packages.main-ema-template;
             site = buildEmaSiteWithTailwind { baseUrl = "/"; };
             site-github = buildEmaSiteWithTailwind { baseUrl = "/ema-template/"; };
           };
+        devShells.default = config.mission-control.installToDevShell config.devShells.main;
       };
     };
 }
