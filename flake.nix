@@ -4,22 +4,26 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
+    flake-root.url = "github:srid/flake-root";
     proc-flake.url = "github:srid/proc-flake";
+    mission-control.url = "github:Platonic-Systems/mission-control";
 
     # Haskell overrides
     ema.url = "github:srid/ema";
     ema.flake = false;
   };
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit self; } {
+    flake-parts.lib.mkFlake { inherit inputs; } {
       systems = nixpkgs.lib.systems.flakeExposed;
       imports = [
         inputs.haskell-flake.flakeModule
+        inputs.flake-root.flakeModule
         inputs.proc-flake.flakeModule
+        inputs.mission-control.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }: {
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
-        haskellProjects.default = {
+        haskellProjects.main = {
           packages.ema-template.root = ./.;
           haskellPackages = pkgs.haskell.packages.ghc924;
           buildTools = hp: {
@@ -30,10 +34,6 @@
               cabal-fmt tailwind;
             inherit (hp)
               fourmolu;
-
-            inherit (config.packages)
-              # "run" is provided by `processes.groups.run` below.
-              run;
 
             # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
             ghcid = pkgs.haskell.lib.overrideCabal hp.ghcid (drv: {
@@ -58,6 +58,33 @@
           haskell.command = "${lib.getExe pkgs.haskellPackages.ghcid}";
           tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
         };
+        mission-control.scripts = {
+          docs = {
+            description = "Start Hoogle server for project dependencies";
+            command = ''
+              echo http://127.0.0.1:8888
+              hoogle serve -p 8888 --local
+            '';
+            category = "Dev Tools";
+          };
+          repl = {
+            description = "Start the cabal repl";
+            command = ''
+              cabal repl "$@"
+            '';
+            category = "Dev Tools";
+          };
+          fmt = {
+            description = "Auto-format the source tree";
+            command = "treefmt";
+            category = "Dev Tools";
+          };
+          run = {
+            description = "Run the project with ghcid auto-recompile";
+            package = config.proc.groups.run.package;
+            category = "Primary";
+          };
+        };
         packages =
           let
             buildEmaSiteWithTailwind = { baseUrl }:
@@ -73,10 +100,11 @@
                 '';
           in
           {
-            default = config.packages.ema-template;
+            default = config.packages.main-ema-template;
             site = buildEmaSiteWithTailwind { baseUrl = "/"; };
             site-github = buildEmaSiteWithTailwind { baseUrl = "/ema-template/"; };
           };
+        devShells.default = config.mission-control.installToDevShell config.devShells.main;
       };
     };
 }
