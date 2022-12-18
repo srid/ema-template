@@ -5,8 +5,8 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
     flake-root.url = "github:srid/flake-root";
-    proc-flake.url = "github:srid/proc-flake/explicit-flake-root";
-    mission-control.url = "github:Platonic-Systems/mission-control/explicit-flake-root";
+    proc-flake.url = "github:srid/proc-flake";
+    mission-control.url = "github:Platonic-Systems/mission-control";
 
     # Haskell overrides
     ema.url = "github:srid/ema";
