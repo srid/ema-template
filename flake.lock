@@ -34,6 +34,21 @@
         "type": "github"
       }
     },
+    "flake-root": {
+      "locked": {
+        "lastModified": 1671301732,
+        "narHash": "sha256-Gk+8PvIG66UMhx0F9wsgpMQ5KdzAhcXAJHKZpym1aYA=",
+        "owner": "srid",
+        "repo": "flake-root",
+        "rev": "972a7da22ac2c8cd14e07ce5a476047dec94f2a6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "flake-root",
+        "type": "github"
+      }
+    },
     "haskell-flake": {
       "locked": {
         "lastModified": 1668167720,
@@ -84,12 +99,15 @@
       }
     },
     "proc-flake": {
+      "inputs": {
+        "flake-root": "flake-root"
+      },
       "locked": {
-        "lastModified": 1670709078,
-        "narHash": "sha256-lGiGnYDX1W0XambHtaemj+zQCx7yQVmdravkOB1Z3oQ=",
+        "lastModified": 1671378855,
+        "narHash": "sha256-bP++lCeUzn9/HMzAr5s0Hakk81tudefHz7zq0Lno7x4=",
         "owner": "srid",
         "repo": "proc-flake",
-        "rev": "2fd76cf9c2399f5d8000bffb1cc34112cf04c3da",
+        "rev": "35e8d11eef5303238dbcd488cb72bd2428adb26e",
         "type": "github"
       },
       "original": {
