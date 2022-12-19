@@ -61,7 +61,7 @@
         mission-control.scripts = {
           docs = {
             description = "Start Hoogle server for project dependencies";
-            command = ''
+            exec = ''
               echo http://127.0.0.1:8888
               hoogle serve -p 8888 --local
             '';
@@ -69,19 +69,19 @@
           };
           repl = {
             description = "Start the cabal repl";
-            command = ''
+            exec = ''
               cabal repl "$@"
             '';
             category = "Dev Tools";
           };
           fmt = {
             description = "Auto-format the source tree";
-            command = "treefmt";
+            exec = "treefmt";
             category = "Dev Tools";
           };
           run = {
             description = "Run the project with ghcid auto-recompile";
-            package = config.proc.groups.run.package;
+            exec = config.proc.groups.run.package;
             category = "Primary";
           };
         };
