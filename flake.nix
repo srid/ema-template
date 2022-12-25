@@ -1,5 +1,10 @@
 {
   description = "Ema template app";
+  # Remove this after GHC 9.2 gets into nixpkgs pkgs.haskellPackages
+  nixConfig = {
+    extra-substituters = "https://cache.srid.ca";
+    extra-trusted-public-keys = "cache.srid.ca:8sQkbPrOIoXktIwI0OucQBXod2e9fDjjoEZWn8OXbdo=";
+  };
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
@@ -106,5 +111,8 @@
           };
         devShells.default = config.mission-control.installToDevShell config.devShells.main;
       };
+
+      # CI configuration
+      flake.herculesCI.ciSystems = [ "x86_64-linux" "aarch64-darwin" ];
     };
 }
