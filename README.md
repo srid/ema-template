@@ -2,7 +2,7 @@
 
 A very simple example [Ema](https://ema.srid.ca/) site that is based on Blaze HTML & TailwindCSS 3. Use it to bootstrap your next static site using Ema.
 
-The generated HTML site can be previewed here: https://emaapps.github.io/ema-template/
+The generated HTML site can be previewed here: https://srid.github.io/ema-template/
 
 ## Getting Started
 
