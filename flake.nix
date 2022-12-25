@@ -30,7 +30,7 @@
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
         haskellProjects.main = {
           packages.ema-template.root = ./.;
-          haskellPackages = pkgs.haskell.packages.ghc924;
+          haskellPackages = pkgs.haskell.packages.ghc925;
           buildTools = hp: {
             inherit (pkgs)
               treefmt
