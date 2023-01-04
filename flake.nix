@@ -40,22 +40,15 @@
                 nixpkgs-fmt;
               inherit (pkgs.haskellPackages)
                 cabal-fmt tailwind;
+              inherit (hp)
+                fourmolu;
 
               ghcid = fixCyclicReference hp.ghcid;
-              ormolu = fixCyclicReference hp.ormolu;
-              fourmolu = fixCyclicReference hp.fourmolu;
               haskell-language-server = hp.haskell-language-server.overrideScope (lself: lsuper: {
                 ormolu = fixCyclicReference hp.ormolu;
               });
             };
-          overrides = self: super: with pkgs.haskell.lib; {
-            #type-errors-pretty = dontCheck (doJailbreak super.type-errors-pretty);
-            #relude = dontCheck (self.callHackage "relude" "1.1.0.0" { }); # 1.1 not in nixpkgs yet
-            #retry = dontCheck super.retry; # For GHC 9.2.
-            #streaming-commons = dontCheck super.streaming-commons; # Fails on darwin
-            #http2 = dontCheck super.http2; # Fails on darwin
-            #hls-explicit-fixity-plugin = dontCheck super.hls-explicit-fixity-plugin;
-          };
+          overrides = self: super: with pkgs.haskell.lib; { };
         };
         proc.groups.run.processes = {
           haskell.command = "ghcid";
