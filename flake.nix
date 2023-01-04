@@ -89,7 +89,7 @@
                 ''
                   mkdir -p $out
                   pushd ${self}
-                  ${lib.getExe config.packages.default} \
+                  ${lib.getExe config.packages.main-ema-template} \
                   --base-url=${baseUrl} gen $out
                   ${lib.getExe pkgs.haskellPackages.tailwind} \
                   -o $out/tailwind.css 'src/**/*.hs'
