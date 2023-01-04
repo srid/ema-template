@@ -27,8 +27,8 @@
         haskellProjects.main = {
           packages.ema-template.root = ./.;
           buildTools = hp:
-            # https://github.com/NixOS/nixpkgs/issues/140774 reoccurs in GHC 9.2
             let
+              # Workaround for https://github.com/NixOS/nixpkgs/issues/140774
               fixCyclicReference = drv:
                 pkgs.haskell.lib.overrideCabal drv (_: {
                   enableSeparateBinOutput = false;
