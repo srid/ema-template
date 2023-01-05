@@ -20,7 +20,6 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 
 ## Note
 
-- We are using GHC 9.2 which is not yet the default in `nixpkgs`, so you may want to use my [Nix binary cache](https://srid.ca/cache.srid.ca) to avoid long compilation.
 - This project uses [relude](https://github.com/kowainik/relude) as its prelude, as well as Tailwind+Blaze as CSS utility and HTML DSL. Even though the author highly recommends them, you are of course free to swap them out for the library of your choice.
   - Tailwind CSS is compiled, alongside Ghcid, via foreman (see `./Procfile`)
 - As a first step to using this template, 
@@ -28,9 +27,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
       - To automate this, `mv ema-template.cabal myproject.cabal; nix run nixpkgs#sd -- ema-template myproject * */* .github/*/*`
 - Configuration:
   - To change the port (or the Ema CLI arguments, used by `nix develop -c , run`), see `./.ghcid` (if you leave out `--port` a random port will be used)
-  - To update Ema to the latest Git revision, run `nix flake lock --update-input ema` or just `nix flake update` (the latter updates all Nix inputs)
-    - Be sure to check https://ema.srid.ca/start/upgrade for changes needed.
-  - To add/remove Haskell dependencies, see the .cabal file. If a dependency is unavailable in nixpkgs, you can override it (to point to say a Git repo) in the `source-overrides` (or `overrides` if you need more power) attribute of flake.nix. You can imitate the `ema` package itself is overridden.
+  - To add/remove Haskell dependencies, see http://srid.ca/haskell-template/dependency
 - To generate the site, run:
   ```sh
   nix build .#site
