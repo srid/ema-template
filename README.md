@@ -22,7 +22,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 
 - This project uses [relude](https://github.com/kowainik/relude) as its prelude, as well as Tailwind+Blaze as CSS utility and HTML DSL. Even though the author highly recommends them, you are of course free to swap them out for the library of your choice.
   - Tailwind CSS is compiled, alongside Ghcid, via foreman (see `flake.nix`)
-- As a first step to using this template, rename your project using https://srid.ca/haskell-template/start
+- As a first step to using this template, rename your project using https://srid.ca/haskell-template/start#rename-the-project (use `ema-template` in place of `haskell-template`)
 - Configuration:
   - To change the port (or the Ema CLI arguments, used by `nix develop -c , run`), see `./.ghcid` (if you leave out `--port` a random port will be used)
   - To add/remove Haskell dependencies, see http://srid.ca/haskell-template/dependency
