@@ -16,7 +16,7 @@ To develop with full IDE support in Visual Studio Code, follow these steps:
     - <kbd>Ctrl+Shift+P</kbd> to run the command "Nix-Env: Select Environment" and select `shell.nix`. The extension will ask you to reload VSCode at the end.
 - Press <kbd>Ctrl+Shift+B</kbd> in VSCode, or run `nix develop -c , run` in terminal, to launch the Ema dev server, and navigate to http://localhost:9001/
 
-All but the final step need to be done only once. Check [the Ema tutorial](https://ema.srid.ca/start/tutorial) next.
+All but the final step need to be done only once. Check [the Ema tutorial](https://ema.srid.ca/tutorial) next.
 
 ## Note
 
