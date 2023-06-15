@@ -97,18 +97,18 @@
         "type": "github"
       }
     },
-    "proc-flake": {
+    "process-compose-flake": {
       "locked": {
-        "lastModified": 1671388981,
-        "narHash": "sha256-p++h07G0qiJtnjnyJRPehLIXJ3sU5zGtpOfZbnUxuZU=",
-        "owner": "srid",
-        "repo": "proc-flake",
-        "rev": "676b5af467e52c06aa8a9165edb3345c6dbbabde",
+        "lastModified": 1686771612,
+        "narHash": "sha256-J1rKoEZpw/IyOdr+3UbwyRr2H2mkjvgQAab/71L/hos=",
+        "owner": "Platonic-Systems",
+        "repo": "process-compose-flake",
+        "rev": "ef453a6ce5deb13f90ebcebcbf25e01fdf2c7505",
         "type": "github"
       },
       "original": {
-        "owner": "srid",
-        "repo": "proc-flake",
+        "owner": "Platonic-Systems",
+        "repo": "process-compose-flake",
         "type": "github"
       }
     },
@@ -119,7 +119,7 @@
         "haskell-flake": "haskell-flake",
         "mission-control": "mission-control",
         "nixpkgs": "nixpkgs",
-        "proc-flake": "proc-flake",
+        "process-compose-flake": "process-compose-flake",
         "systems": "systems"
       }
     },

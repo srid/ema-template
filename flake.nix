@@ -6,7 +6,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
     flake-root.url = "github:srid/flake-root";
-    proc-flake.url = "github:srid/proc-flake";
+    process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
     mission-control.url = "github:Platonic-Systems/mission-control";
   };
   outputs = inputs:
@@ -15,7 +15,7 @@
       imports = [
         inputs.haskell-flake.flakeModule
         inputs.flake-root.flakeModule
-        inputs.proc-flake.flakeModule
+        inputs.process-compose-flake.flakeModule
         inputs.mission-control.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }: {
@@ -32,9 +32,12 @@
         };
 
         # From https://github.com/srid/proc-flake
-        proc.groups.run.processes = {
-          haskell.command = "ghcid";
-          tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
+        process-compose.run = {
+          tui = false;
+          settings.processes = {
+            haskell.command = "ghcid";
+            tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
+          };
         };
 
         # From https://github.com/Platonic-Systems/mission-control
@@ -61,7 +64,7 @@
           };
           run = {
             description = "Run the dev server (ghcid + tailwind)";
-            exec = config.proc.groups.run.package;
+            exec = config.process-compose.run.outputs.package;
             category = "Primary";
           };
         };
