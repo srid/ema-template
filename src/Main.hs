@@ -134,7 +134,7 @@ parseCliArgs =
     cliParser :: Parser CliArgs
     cliParser =
       CliArgs
-        <$> (option str $ long "base-url" <> metavar "BASE_URL" <> help "Base URL to use in <base>" <> value "/")
+        <$> option str (long "base-url" <> metavar "BASE_URL" <> help "Base URL to use in <base>" <> value "/")
         <*> Ema.CLI.cliParser
     parserInfo :: Parser a -> ParserInfo a
     parserInfo p =

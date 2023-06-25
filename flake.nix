@@ -5,9 +5,11 @@
     systems.url = "github:nix-systems/default";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
+
     flake-root.url = "github:srid/flake-root";
     process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
     mission-control.url = "github:Platonic-Systems/mission-control";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
   };
   outputs = inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
@@ -17,18 +19,36 @@
         inputs.flake-root.flakeModule
         inputs.process-compose-flake.flakeModule
         inputs.mission-control.flakeModule
+        inputs.treefmt-nix.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }: {
         # "haskellProjects" comes from https://github.com/srid/haskell-flake
         haskellProjects.default = {
           devShell.tools = hp: {
-            inherit (pkgs)
-              treefmt
-              nixpkgs-fmt;
-            inherit (hp)
-              cabal-fmt tailwind fourmolu;
+            inherit (hp) tailwind;
           };
           autoWire = [ "packages" "apps" "checks" ];
+        };
+
+        # Auto formatters. This also adds a flake check to ensure that the
+        # source tree was auto formatted.
+        treefmt.config = {
+          inherit (config.flake-root) projectRootFile;
+          package = pkgs.treefmt;
+
+          programs.ormolu.enable = true;
+          programs.nixpkgs-fmt.enable = true;
+          programs.cabal-fmt.enable = true;
+          programs.hlint.enable = true;
+
+          # We use fourmolu
+          programs.ormolu.package = pkgs.haskellPackages.fourmolu;
+          settings.formatter.ormolu = {
+            options = [
+              "--ghc-opt"
+              "-XImportQualifiedPost"
+            ];
+          };
         };
 
         # From https://github.com/srid/proc-flake
@@ -48,24 +68,20 @@
               echo http://127.0.0.1:8888
               hoogle serve -p 8888 --local
             '';
-            category = "Dev Tools";
           };
           repl = {
             description = "Start the cabal repl";
             exec = ''
               cabal repl "$@"
             '';
-            category = "Dev Tools";
           };
           fmt = {
             description = "Auto-format the source tree";
-            exec = "treefmt";
-            category = "Dev Tools";
+            exec = config.treefmt.build.wrapper;
           };
           run = {
             description = "Run the dev server (ghcid + tailwind)";
             exec = config.process-compose.run.outputs.package;
-            category = "Primary";
           };
         };
 
@@ -92,8 +108,10 @@
         devShells.default = pkgs.mkShell {
           name = "ema-template";
           inputsFrom = [
-            config.mission-control.devShell
             config.haskellProjects.default.outputs.devShell
+            config.treefmt.build.devShell
+            config.mission-control.devShell
+            config.flake-root.devShell
           ];
         };
       };
