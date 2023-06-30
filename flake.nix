@@ -51,7 +51,7 @@
           };
         };
 
-        # From https://github.com/srid/proc-flake
+        # From https://github.com/Platonic-Systems/process-compose-flake
         process-compose.run = {
           tui = false;
           settings.processes = {
