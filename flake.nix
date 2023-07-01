@@ -7,7 +7,7 @@
     haskell-flake.url = "github:srid/haskell-flake";
 
     flake-root.url = "github:srid/flake-root";
-    process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
+    proc-flake.url = "github:srid/proc-flake";
     mission-control.url = "github:Platonic-Systems/mission-control";
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
@@ -17,7 +17,7 @@
       imports = [
         inputs.haskell-flake.flakeModule
         inputs.flake-root.flakeModule
-        inputs.process-compose-flake.flakeModule
+        inputs.proc-flake.flakeModule
         inputs.mission-control.flakeModule
         inputs.treefmt-nix.flakeModule
       ];
@@ -52,9 +52,8 @@
         };
 
         # From https://github.com/Platonic-Systems/process-compose-flake
-        process-compose.run = {
-          tui = false;
-          settings.processes = {
+        proc.groups.run = {
+          processes = {
             haskell.command = "ghcid";
             tailwind.command = "${lib.getExe pkgs.haskellPackages.tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
           };
@@ -81,7 +80,7 @@
           };
           run = {
             description = "Run the dev server (ghcid + tailwind)";
-            exec = config.process-compose.run.outputs.package;
+            exec = config.proc.groups.run.package;
           };
         };
 

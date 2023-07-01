@@ -113,18 +113,18 @@
         "type": "github"
       }
     },
-    "process-compose-flake": {
+    "proc-flake": {
       "locked": {
-        "lastModified": 1687298948,
-        "narHash": "sha256-7Lu4/odCkkwrzR8Mo+3D+URv4oLap8WWLESzi/75eb0=",
-        "owner": "Platonic-Systems",
-        "repo": "process-compose-flake",
-        "rev": "5bdb90b85642901cf9a5dccfe8c907091c261604",
+        "lastModified": 1671388981,
+        "narHash": "sha256-p++h07G0qiJtnjnyJRPehLIXJ3sU5zGtpOfZbnUxuZU=",
+        "owner": "srid",
+        "repo": "proc-flake",
+        "rev": "676b5af467e52c06aa8a9165edb3345c6dbbabde",
         "type": "github"
       },
       "original": {
-        "owner": "Platonic-Systems",
-        "repo": "process-compose-flake",
+        "owner": "srid",
+        "repo": "proc-flake",
         "type": "github"
       }
     },
@@ -135,7 +135,7 @@
         "haskell-flake": "haskell-flake",
         "mission-control": "mission-control",
         "nixpkgs": "nixpkgs",
-        "process-compose-flake": "process-compose-flake",
+        "proc-flake": "proc-flake",
         "systems": "systems",
         "treefmt-nix": "treefmt-nix"
       }
