@@ -8,7 +8,7 @@ The generated HTML site can be previewed here: https://srid.github.io/ema-templa
 
 To develop with full IDE support in Visual Studio Code, follow these steps:
 
-- [Install Nix](https://nixos.org/download.html) & [enable Flakes](https://nixos.wiki/wiki/Flakes#Enable_flakes)
+- [Install Nix](https://zero-to-flakes.com/install/)
 - Run `nix develop -i -c haskell-language-server` to sanity check your environment 
 - Open the repository [as single-folder workspace](https://code.visualstudio.com/docs/editor/workspaces#_singlefolder-workspaces) in Visual Studio Code
     - Install the recommended extensions
@@ -24,7 +24,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 - As a first step to using this template, rename your project using https://srid.ca/haskell-template/start#rename-the-project (use `ema-template` in place of `haskell-template`)
 - Configuration:
   - To change the port (or the Ema CLI arguments, used by `nix develop -c , run`), see `./.ghcid` (if you leave out `--port` a random port will be used)
-  - To add/remove Haskell dependencies, see http://srid.ca/haskell-template/dependency
+  - To add/remove Haskell dependencies, see https://zero-to-flakes.com/haskell-flake/dependency/
 - To generate the site, run:
   ```sh
   nix build .#site
