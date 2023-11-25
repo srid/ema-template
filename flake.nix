@@ -8,7 +8,6 @@
 
     flake-root.url = "github:srid/flake-root";
     proc-flake.url = "github:srid/proc-flake";
-    mission-control.url = "github:Platonic-Systems/mission-control";
     treefmt-nix.url = "github:numtide/treefmt-nix";
 
     ema.url = "github:srid/ema";
@@ -21,7 +20,6 @@
         inputs.haskell-flake.flakeModule
         inputs.flake-root.flakeModule
         inputs.proc-flake.flakeModule
-        inputs.mission-control.flakeModule
         inputs.treefmt-nix.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }:
@@ -65,35 +63,10 @@
           };
 
           # From https://github.com/Platonic-Systems/process-compose-flake
-          proc.groups.run = {
+          proc.groups.ema-tailwind-run = {
             processes = {
               haskell.command = "ghcid";
               tailwind.command = "${lib.getExe tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
-            };
-          };
-
-          # From https://github.com/Platonic-Systems/mission-control
-          mission-control.scripts = {
-            docs = {
-              description = "Start Hoogle server for project dependencies";
-              exec = ''
-                echo http://127.0.0.1:8888
-                hoogle serve -p 8888 --local
-              '';
-            };
-            repl = {
-              description = "Start the cabal repl";
-              exec = ''
-                cabal repl "$@"
-              '';
-            };
-            fmt = {
-              description = "Auto-format the source tree";
-              exec = config.treefmt.build.wrapper;
-            };
-            run = {
-              description = "Run the dev server (ghcid + tailwind)";
-              exec = config.proc.groups.run.package;
             };
           };
 
@@ -121,11 +94,12 @@
             name = "ema-template";
             packages = [
               tailwind
+              pkgs.just
+              config.proc.groups.ema-tailwind-run.package
             ];
             inputsFrom = [
               config.haskellProjects.default.outputs.devShell
               config.treefmt.build.devShell
-              config.mission-control.devShell
               config.flake-root.devShell
             ];
           };
