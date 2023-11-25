@@ -114,7 +114,7 @@ routeLink rp r =
     ! A.class_ "text-rose-400"
 
 -- | Link to a file under ./static
-staticRouteUrl :: IsString r => Prism' FilePath Route -> Model -> FilePath -> r
+staticRouteUrl :: (IsString r) => Prism' FilePath Route -> Model -> FilePath -> r
 staticRouteUrl rp m =
   SR.staticRouteUrl (rp % (_As @"Route_Static")) (modelStatic m)
 

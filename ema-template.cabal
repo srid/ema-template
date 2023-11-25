@@ -60,7 +60,6 @@ executable ema-template
     -fprint-explicit-foralls -fprint-explicit-kinds -threaded
 
   default-extensions:
-    NoStarIsType
     BangPatterns
     ConstraintKinds
     DataKinds
@@ -87,6 +86,7 @@ executable ema-template
     LambdaCase
     MultiParamTypeClasses
     MultiWayIf
+    NoStarIsType
     NumericUnderscores
     OverloadedStrings
     PolyKinds
