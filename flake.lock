@@ -11,11 +11,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1700933069,
-        "narHash": "sha256-zeMKMzPwasYYTax2pWXb7iv434OuytrO3zgWG8bQ4KY=",
+        "lastModified": 1700963752,
+        "narHash": "sha256-qXESyYX1rue+jZmxUAbl+ZnveMAohpCIe54k/OoyAWs=",
         "owner": "srid",
         "repo": "ema",
-        "rev": "8a9e46555b93cc638e990b1b04dc930f06e91d34",
+        "rev": "0371c6c910723b319f02d5db565c147ead347fda",
         "type": "github"
       },
       "original": {

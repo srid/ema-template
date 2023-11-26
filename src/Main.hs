@@ -3,6 +3,7 @@
 
 module Main where
 
+import Data.Default (def)
 import Data.Generics.Sum.Any (AsAny (_As))
 import Ema
 import Ema.CLI qualified
@@ -153,4 +154,5 @@ parseCliArgs =
 main :: IO ()
 main = do
   cliArgs <- parseCliArgs
-  void $ Ema.runSiteWithCli @Route (cliArgsEmaCli cliArgs) cliArgs
+  let cfg = SiteConfig (cliArgsEmaCli cliArgs) def
+  void $ Ema.runSiteWith @Route cfg cliArgs
