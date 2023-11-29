@@ -66,7 +66,7 @@ renderHtmlRoute rp m r = do
     H.html ! A.lang "en" $ do
       H.head $ do
         renderHead rp m r
-      H.body $ do
+      H.body ! A.class_ "bg-gray-50" $ do
         renderBody rp m r
 
 renderHead :: Prism' FilePath Route -> Model -> HtmlRoute -> H.Html
@@ -79,7 +79,7 @@ renderHead rp model r = do
 
 renderBody :: Prism' FilePath Route -> Model -> HtmlRoute -> H.Html
 renderBody rp model r = do
-  H.div ! A.class_ "container mx-auto mt-8 p-2" $ do
+  H.div ! A.class_ "container mx-auto mt-8 p-4 max-w-prose border-2 bg-white rounded-lg shadow" $ do
     renderNavbar rp r
     H.h1 ! A.class_ "text-3xl font-bold" $ H.toHtml $ routeTitle r
     case r of
@@ -89,7 +89,7 @@ renderBody rp model r = do
         "?"
       HtmlRoute_About -> do
         "You are on the about page."
-    H.a ! A.href (staticRouteUrl rp model "logo.svg") $ do
+    H.a ! A.href (staticRouteUrl rp model "logo.svg") ! A.target "_blank" $ do
       H.img ! A.src (staticRouteUrl rp model "logo.svg") ! A.class_ "py-4 w-32" ! A.alt "Ema Logo"
 
 renderNavbar :: Prism' FilePath Route -> HtmlRoute -> H.Html
