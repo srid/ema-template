@@ -9,6 +9,7 @@
     flake-root.url = "github:srid/flake-root";
     proc-flake.url = "github:srid/proc-flake";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     fourmolu-nix.url = "github:jedimahdi/fourmolu-nix";
 
     ema.url = "github:srid/ema";
@@ -22,6 +23,7 @@
         inputs.flake-root.flakeModule
         inputs.proc-flake.flakeModule
         inputs.treefmt-nix.flakeModule
+        inputs.fourmolu-nix.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }:
         let
@@ -55,12 +57,6 @@
 
             # We use fourmolu
             programs.fourmolu.package = config.fourmolu.wrapper;
-            settings.formatter.ormolu = {
-              options = [
-                "--ghc-opt"
-                "-XImportQualifiedPost"
-              ];
-            };
           };
 
           fourmolu.settings = {
