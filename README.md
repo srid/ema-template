@@ -8,12 +8,13 @@ The generated HTML site can be previewed here: https://srid.github.io/ema-templa
 
 To develop with full IDE support in Visual Studio Code, follow these steps:
 
-- [Install Nix](https://flakular.in/install)
+- [Install Nix](https://nixos.asia/en/install)
+  - And [setup direnv](https://nixos.asia/en/direnv)
 - Run `nix develop -i -c haskell-language-server` to sanity check your environment 
 - Open the repository [as single-folder workspace](https://code.visualstudio.com/docs/editor/workspaces#_singlefolder-workspaces) in Visual Studio Code
     - Install the recommended extensions
-    - <kbd>Ctrl+Shift+P</kbd> to run the command "Nix-Env: Select Environment" and select `shell.nix`. The extension will ask you to reload VSCode at the end.
-- Press <kbd>Ctrl+Shift+B</kbd> in VSCode, or run `nix develop -c just run` in terminal, to launch the Ema dev server, and navigate to http://localhost:9001/
+    - Active the direnv environment
+- Press <kbd>Ctrl+Shift+B</kbd> in VSCode, or run `nix develop -c just run` in terminal (`just run` if direnv is already active), to launch the Ema dev server, and navigate to http://localhost:9001/
 
 All but the final step need to be done only once. Check [the Ema tutorial](https://ema.srid.ca/tutorial) next.
 
@@ -24,7 +25,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 - As a first step to using this template, rename your project using https://srid.ca/haskell-template/start#rename-the-project (use `ema-template` in place of `haskell-template`)
 - Configuration:
   - To change the port (or the Ema CLI arguments, used by `nix develop -c just run`), see `./.ghcid` (if you leave out `--port` a random port will be used)
-  - To add/remove Haskell dependencies, see https://zero-to-flakes.com/haskell-flake/dependency/
+  - To add/remove Haskell dependencies, see https://community.flake.parts/haskell-flake/dependency
 - To generate the site, run:
   ```sh
   nix build .#site
