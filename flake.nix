@@ -9,6 +9,8 @@
     flake-root.url = "github:srid/flake-root";
     proc-flake.url = "github:srid/proc-flake";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    fourmolu-nix.url = "github:jedimahdi/fourmolu-nix";
 
     ema.url = "github:srid/ema";
     ema.inputs.nixpkgs.follows = "nixpkgs";
@@ -21,6 +23,7 @@
         inputs.flake-root.flakeModule
         inputs.proc-flake.flakeModule
         inputs.treefmt-nix.flakeModule
+        inputs.fourmolu-nix.flakeModule
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }:
         let
@@ -47,19 +50,25 @@
             inherit (config.flake-root) projectRootFile;
             package = pkgs.treefmt;
 
-            programs.ormolu.enable = true;
+            programs.fourmolu.enable = true;
             programs.nixpkgs-fmt.enable = true;
             programs.cabal-fmt.enable = true;
             programs.hlint.enable = true;
 
             # We use fourmolu
-            programs.ormolu.package = pkgs.haskellPackages.fourmolu;
-            settings.formatter.ormolu = {
-              options = [
-                "--ghc-opt"
-                "-XImportQualifiedPost"
-              ];
-            };
+            programs.fourmolu.package = config.fourmolu.wrapper;
+          };
+
+          fourmolu.settings = {
+            indentation = 2;
+            comma-style = "leading";
+            record-brace-space = true;
+            indent-wheres = true;
+            import-export-style = "diff-friendly";
+            respectful = true;
+            haddock-style = "multi-line";
+            newlines-between-decls = 1;
+            extensions = [ "ImportQualifiedPost" ];
           };
 
           # From https://github.com/Platonic-Systems/process-compose-flake
@@ -92,6 +101,7 @@
 
           devShells.default = pkgs.mkShell {
             name = "ema-template";
+            meta.description = "ema-template development environment";
             packages = [
               tailwind
               pkgs.just
