@@ -71,7 +71,7 @@
             extensions = [ "ImportQualifiedPost" ];
           };
 
-          # From https://github.com/Platonic-Systems/process-compose-flake
+          # From https://github.com/srid/proc-flake
           proc.groups.ema-tailwind-run = {
             processes = {
               haskell.command = "ghcid";
