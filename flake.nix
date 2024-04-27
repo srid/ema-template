@@ -27,7 +27,7 @@
       ];
       perSystem = { self', config, inputs', pkgs, lib, ... }:
         let
-          tailwind = config.haskellProjects.default.outputs.finalPackages.tailwind;
+          tailwind = pkgs.haskellPackages.tailwind;
         in
         {
           # "haskellProjects" comes from https://github.com/srid/haskell-flake
@@ -35,12 +35,6 @@
             imports = [
               inputs.ema.haskellFlakeProjectModules.output
             ];
-            settings = {
-              tailwind = {
-                broken = false;
-                jailbreak = true;
-              };
-            };
             autoWire = [ "packages" "apps" "checks" ];
           };
 
