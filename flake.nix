@@ -25,7 +25,7 @@
         inputs.treefmt-nix.flakeModule
         inputs.fourmolu-nix.flakeModule
       ];
-      perSystem = { self', config, inputs', pkgs, lib, ... }:
+      perSystem = { config, pkgs, lib, ... }:
         let
           tailwind = pkgs.haskellPackages.tailwind;
         in
@@ -99,6 +99,7 @@
             packages = [
               tailwind
               pkgs.just
+              pkgs.nixd
               config.proc.groups.ema-tailwind-run.package
             ];
             inputsFrom = [
