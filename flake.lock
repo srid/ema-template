@@ -228,21 +228,6 @@
         "type": "github"
       }
     },
-    "flake-root_3": {
-      "locked": {
-        "lastModified": 1723604017,
-        "narHash": "sha256-rBtQ8gg+Dn4Sx/s+pvjdq3CB2wQNzx9XGFq/JVGCB6k=",
-        "owner": "srid",
-        "repo": "flake-root",
-        "rev": "b759a56851e10cb13f6b8e5698af7b59c44be26e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "srid",
-        "repo": "flake-root",
-        "type": "github"
-      }
-    },
     "fourmolu-nix": {
       "locked": {
         "lastModified": 1707266073,
@@ -415,18 +400,18 @@
         "type": "github"
       }
     },
-    "proc-flake": {
+    "process-compose-flake": {
       "locked": {
-        "lastModified": 1713493374,
-        "narHash": "sha256-w2XKCa27RxCu32PKnResrKEcnOV/S6Qh1sWBWCUSjJ8=",
-        "owner": "srid",
-        "repo": "proc-flake",
-        "rev": "7bf695fad8caec98c122f1641ddca5e36477223f",
+        "lastModified": 1724606023,
+        "narHash": "sha256-rdGeNa/lCS8E1lXzPqgl+vZUUvnbEZT11Bqkx5jfYug=",
+        "owner": "Platonic-Systems",
+        "repo": "process-compose-flake",
+        "rev": "f6ce9481df9aec739e4e06b67492401a5bb4f0b1",
         "type": "github"
       },
       "original": {
-        "owner": "srid",
-        "repo": "proc-flake",
+        "owner": "Platonic-Systems",
+        "repo": "process-compose-flake",
         "type": "github"
       }
     },
@@ -434,11 +419,10 @@
       "inputs": {
         "ema": "ema",
         "flake-parts": "flake-parts_3",
-        "flake-root": "flake-root_3",
         "fourmolu-nix": "fourmolu-nix",
         "haskell-flake": "haskell-flake_3",
         "nixpkgs": "nixpkgs_3",
-        "proc-flake": "proc-flake",
+        "process-compose-flake": "process-compose-flake",
         "systems": "systems_2",
         "treefmt-nix": "treefmt-nix_3"
       }

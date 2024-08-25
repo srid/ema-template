@@ -16,4 +16,4 @@ fmt:
 
 # Run the dev server (ghcid + tailwind)
 run:
-    ema-tailwind-run
+    nix run .#ema-tailwind-run

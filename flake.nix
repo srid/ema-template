@@ -6,8 +6,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
 
-    flake-root.url = "github:srid/flake-root";
-    proc-flake.url = "github:srid/proc-flake";
+    process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     fourmolu-nix.url = "github:jedimahdi/fourmolu-nix";
@@ -20,12 +19,11 @@
       systems = import inputs.systems;
       imports = [
         inputs.haskell-flake.flakeModule
-        inputs.flake-root.flakeModule
-        inputs.proc-flake.flakeModule
+        inputs.process-compose-flake.flakeModule
         inputs.treefmt-nix.flakeModule
         inputs.fourmolu-nix.flakeModule
       ];
-      perSystem = { config, pkgs, lib, ... }:
+      perSystem = { config, self', pkgs, lib, ... }:
         let
           tailwind = pkgs.haskellPackages.tailwind;
         in
@@ -41,8 +39,7 @@
           # Auto formatters. This also adds a flake check to ensure that the
           # source tree was auto formatted.
           treefmt.config = {
-            inherit (config.flake-root) projectRootFile;
-            package = pkgs.treefmt;
+            projectRootFile = "flake.nix";
 
             programs.fourmolu.enable = true;
             programs.nixpkgs-fmt.enable = true;
@@ -65,11 +62,16 @@
             extensions = [ "ImportQualifiedPost" ];
           };
 
-          # From https://github.com/srid/proc-flake
-          proc.groups.ema-tailwind-run = {
-            processes = {
-              haskell.command = "ghcid";
-              tailwind.command = "${lib.getExe tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
+          process-compose."ema-tailwind-run" = {
+            tui = false;
+            settings = {
+              processes = {
+                haskell.command = "ghcid";
+                tailwind = {
+                  command = "${lib.getExe tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
+                  is_tty = true;
+                };
+              };
             };
           };
 
@@ -100,12 +102,10 @@
               tailwind
               pkgs.just
               pkgs.nixd
-              config.proc.groups.ema-tailwind-run.package
             ];
             inputsFrom = [
               config.haskellProjects.default.outputs.devShell
               config.treefmt.build.devShell
-              config.flake-root.devShell
             ];
           };
         };
