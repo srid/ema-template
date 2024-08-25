@@ -8,12 +8,12 @@ jobs:
   ema:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Build sources & site 🔧
         run: |
-          nix build .#site-github -j 4
+          nix build .#site-github -j auto
       - name: Deploy to gh-pages 🚀
         uses: peaceiris/actions-gh-pages@v3
         if: github.ref == 'refs/heads/master'
