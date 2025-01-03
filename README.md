@@ -1,6 +1,6 @@
 # Ema Template
 
-A very simple example [Ema](https://ema.srid.ca/) site that is based on Blaze HTML & TailwindCSS 3. Use it to bootstrap your next static site using Ema.
+A very simple example [Ema](https://ema.srid.ca/) site that is based on Lucid2 & TailwindCSS 3. Use it to bootstrap your next static site using Ema.
 
 The generated HTML site can be previewed here: https://srid.github.io/ema-template/
 
@@ -20,7 +20,7 @@ All but the final step need to be done only once. Check [the Ema tutorial](https
 
 ## Note
 
-- This project uses [relude](https://github.com/kowainik/relude) as its prelude, as well as Tailwind+Blaze as CSS utility and HTML DSL. Even though the author highly recommends them, you are of course free to swap them out for the library of your choice.
+- This project uses [relude](https://github.com/kowainik/relude) as its prelude, as well as Tailwind+Lucid as CSS utility and HTML DSL. Even though the author highly recommends them, you are of course free to swap them out for the library of your choice.
   - Tailwind CSS is compiled, alongside Ghcid, via foreman (see `flake.nix`)
 - As a first step to using this template, rename your project using https://srid.ca/haskell-template/start#rename-the-project (use `ema-template` in place of `haskell-template`)
 - Configuration:
