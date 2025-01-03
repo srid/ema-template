@@ -10,10 +10,6 @@ docs:
 repl *ARGS:
     cabal repl {{ARGS}}
 
-# Autoformat the project tree
-fmt:
-    treefmt
-
 # Run the dev server (ghcid + tailwind)
 run:
     nix run .#ema-tailwind-run
