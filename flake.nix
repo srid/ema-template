@@ -7,9 +7,9 @@
     haskell-flake.url = "github:srid/haskell-flake";
 
     process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
-    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     fourmolu-nix.url = "github:jedimahdi/fourmolu-nix";
+    git-hooks.url = "github:cachix/git-hooks.nix";
+    git-hooks.flake = false;
 
     ema.url = "github:srid/ema";
     ema.inputs.nixpkgs.follows = "nixpkgs";
@@ -20,10 +20,10 @@
       imports = [
         inputs.haskell-flake.flakeModule
         inputs.process-compose-flake.flakeModule
-        inputs.treefmt-nix.flakeModule
         inputs.fourmolu-nix.flakeModule
+        (inputs.git-hooks + /flake-module.nix)
       ];
-      perSystem = { config, self', pkgs, lib, ... }:
+      perSystem = { config, pkgs, lib, ... }:
         let
           tailwind = pkgs.haskellPackages.tailwind;
         in
@@ -36,18 +36,16 @@
             autoWire = [ "packages" "apps" "checks" ];
           };
 
-          # Auto formatters. This also adds a flake check to ensure that the
-          # source tree was auto formatted.
-          treefmt.config = {
-            projectRootFile = "flake.nix";
-
-            programs.fourmolu.enable = true;
-            programs.nixpkgs-fmt.enable = true;
-            programs.cabal-fmt.enable = true;
-            programs.hlint.enable = true;
-
-            # We use fourmolu
-            programs.fourmolu.package = config.fourmolu.wrapper;
+          pre-commit.settings = {
+            hooks = {
+              nixpkgs-fmt.enable = true;
+              cabal-fmt.enable = true;
+              fourmolu = {
+                enable = true;
+                package = config.fourmolu.wrapper;
+              };
+              hlint.enable = true;
+            };
           };
 
           fourmolu.settings = {
@@ -105,7 +103,7 @@
             ];
             inputsFrom = [
               config.haskellProjects.default.outputs.devShell
-              config.treefmt.build.devShell
+              config.pre-commit.devShell
             ];
           };
         };
