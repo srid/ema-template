@@ -63,7 +63,7 @@
           };
 
           process-compose."ema-tailwind-run" = {
-            tui = false;
+            cli.environment.PC_DISABLE_TUI = true;
             settings = {
               processes = {
                 haskell.command = "ghcid";
