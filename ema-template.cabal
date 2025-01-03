@@ -40,6 +40,7 @@ executable ema-template
     , ema-generics          >=0.10
     , filepath
     , generic-optics
+    , lucid2
     , monad-logger
     , optics-core
     , optparse-applicative

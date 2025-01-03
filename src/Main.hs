@@ -9,12 +9,9 @@ import Ema
 import Ema.CLI qualified
 import Ema.Route.Generic.TH
 import Ema.Route.Lib.Extra.StaticRoute qualified as SR
+import Lucid
 import Optics.Core (Prism', (%))
 import Options.Applicative
-import Text.Blaze.Html.Renderer.Utf8 qualified as RU
-import Text.Blaze.Html5 ((!))
-import Text.Blaze.Html5 qualified as H
-import Text.Blaze.Html5.Attributes qualified as A
 
 data Model = Model
   { modelBaseUrl :: Text
@@ -61,27 +58,23 @@ instance EmaSite Route where
 
 renderHtmlRoute :: Prism' FilePath Route -> Model -> HtmlRoute -> LByteString
 renderHtmlRoute rp m r = do
-  RU.renderHtml $ do
-    H.docType
-    H.html ! A.lang "en" $ do
-      H.head $ do
-        renderHead rp m r
-      H.body ! A.class_ "bg-gray-50" $ do
-        renderBody rp m r
+  renderBS $ doctypehtml_ $ do
+    head_ $ renderHead rp m r
+    body_ [class_ "bg-gray-50"] $ renderBody rp m r
 
-renderHead :: Prism' FilePath Route -> Model -> HtmlRoute -> H.Html
+renderHead :: Prism' FilePath Route -> Model -> HtmlRoute -> Html ()
 renderHead rp model r = do
-  H.meta ! A.charset "UTF-8"
-  H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
-  H.title $ H.toHtml $ routeTitle r <> " - Ema Template"
-  H.base ! A.href (H.toValue $ modelBaseUrl model)
-  H.link ! A.rel "stylesheet" ! A.href (staticRouteUrl rp model "tailwind.css")
+  meta_ [charset_ "UTF-8"]
+  meta_ [name_ "viewport", content_ "width=device-width, initial-scale=1"]
+  title_ $ toHtml $ routeTitle r <> " - Ema Template"
+  base_ [href_ $ modelBaseUrl model]
+  link_ [rel_ "stylesheet", href_ $ staticRouteUrl rp model "tailwind.css"]
 
-renderBody :: Prism' FilePath Route -> Model -> HtmlRoute -> H.Html
+renderBody :: Prism' FilePath Route -> Model -> HtmlRoute -> Html ()
 renderBody rp model r = do
-  H.div ! A.class_ "container mx-auto mt-8 p-4 max-w-prose border-2 bg-white rounded-lg shadow" $ do
+  div_ [class_ "container mx-auto mt-8 p-4 max-w-prose border-2 bg-white rounded-lg shadow"] $ do
     renderNavbar rp r
-    H.h1 ! A.class_ "text-3xl font-bold" $ H.toHtml $ routeTitle r
+    h1_ [class_ "text-3xl font-bold"] $ toHtml $ routeTitle r
     case r of
       HtmlRoute_Index -> do
         "You are on the index page. Want to see "
@@ -89,18 +82,19 @@ renderBody rp model r = do
         "?"
       HtmlRoute_About -> do
         "You are on the about page."
-    H.a ! A.href (staticRouteUrl rp model "logo.svg") ! A.target "_blank" $ do
-      H.img ! A.src (staticRouteUrl rp model "logo.svg") ! A.class_ "py-4 w-32" ! A.alt "Ema Logo"
+    a_ [href_ $ staticRouteUrl rp model "logo.svg", target_ "_blank"] $ do
+      img_ [src_ $ staticRouteUrl rp model "logo.svg", class_ "py-4 w-32", alt_ "Ema Logo"]
 
-renderNavbar :: Prism' FilePath Route -> HtmlRoute -> H.Html
+renderNavbar :: Prism' FilePath Route -> HtmlRoute -> Html ()
 renderNavbar rp currentRoute =
-  H.nav ! A.class_ "w-full text-xl font-bold flex space-x-4  mb-4" $ do
+  nav_ [class_ "w-full text-xl font-bold flex space-x-4  mb-4"] $ do
     forM_ (universe @HtmlRoute) $ \r ->
       let extraClass = if r == currentRoute then "bg-rose-400 text-white" else "text-gray-700"
-       in H.a
-            ! A.href (H.toValue $ routeUrl rp $ Route_Html r)
-            ! A.class_ ("rounded p-2 " <> extraClass)
-            $ H.toHtml
+       in a_
+            [ href_ $ routeUrl rp $ Route_Html r
+            , class_ $ "rounded p-2 " <> extraClass
+            ]
+            $ toHtml
             $ routeTitle r
 
 routeTitle :: HtmlRoute -> Text
@@ -108,11 +102,12 @@ routeTitle r = case r of
   HtmlRoute_Index -> "Home"
   HtmlRoute_About -> "About"
 
-routeLink :: Prism' FilePath Route -> HtmlRoute -> H.Html -> H.Html
+routeLink :: Prism' FilePath Route -> HtmlRoute -> Html () -> Html ()
 routeLink rp r =
-  H.a
-    ! A.href (H.toValue $ routeUrl rp $ Route_Html r)
-    ! A.class_ "text-rose-400"
+  a_
+    [ href_ $ routeUrl rp $ Route_Html r
+    , class_ "text-rose-400"
+    ]
 
 -- | Link to a file under ./static
 staticRouteUrl :: (IsString r) => Prism' FilePath Route -> Model -> FilePath -> r
