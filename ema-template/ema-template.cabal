@@ -1,11 +1,11 @@
-cabal-version:      2.4
-name:               ema-template
-version:            0.1.0.0
-license:            AGPL-3.0-only
-copyright:          2022 Sridhar Ratnakumar
-maintainer:         srid@srid.ca
-author:             Sridhar Ratnakumar
-category:           Web
+cabal-version: 2.4
+name:          ema-template
+version:       0.1.0.0
+license:       AGPL-3.0-only
+copyright:     2022 Sridhar Ratnakumar
+maintainer:    srid@srid.ca
+author:        Sridhar Ratnakumar
+category:      Web
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -16,11 +16,7 @@ category:           Web
 -- A URL where users can report bugs.
 -- bug-reports:
 
-extra-source-files:
-  LICENSE
-  README.md
-
-data-dir:           static 
+data-dir:      static 
 data-files:
   *.css
   *.svg

@@ -23,7 +23,7 @@
         cli.environment.PC_DISABLE_TUI = true;
         settings = {
           processes = {
-            haskell.command = "ghcid";
+            haskell.command = "cd ./ema-template && ghcid";
             tailwind = {
               command = "${lib.getExe tailwind} -w -o ./static/tailwind.css './src/**/*.hs'";
               is_tty = true;

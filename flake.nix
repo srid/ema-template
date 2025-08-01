@@ -2,8 +2,8 @@
   description = "Ema template app";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    systems.url = "github:nix-systems/default";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    nixos-unified.url = "github:srid/nixos-unified";
     haskell-flake.url = "github:srid/haskell-flake";
 
     process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
@@ -15,13 +15,10 @@
     ema.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs = inputs:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = import inputs.systems;
-      imports = [
-        ./nix/modules/flake/haskell.nix
-        ./nix/modules/flake/devshell.nix
-        ./nix/modules/flake/pre-commit.nix
-        ./nix/modules/flake/packages.nix
-      ];
-    };
+    # This will import ./nix/modules/flake/*.nix
+    # cf. https://nixos-unified.org/autowiring.html#flake-parts
+    #
+    # To write your own Nix, add or edit files in ./nix/modules/flake/
+    inputs.nixos-unified.lib.mkFlake
+      { inherit inputs; root = ./.; };
 }
