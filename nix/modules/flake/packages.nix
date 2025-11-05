@@ -11,13 +11,9 @@
           {
              LANG = "C.UTF-8";
              LC_ALL = "C.UTF-8";
-             GHC_IO_ENCODING = "utf-8";
           }
           ''
             mkdir -p $out
-            export LC_ALL
-            export LANG
-            export GHC_IO_ENCODING
             pushd ${inputs.self}/ema-template
             ${lib.getExe config.packages.ema-template} \
               --base-url=${baseUrl} gen $out
