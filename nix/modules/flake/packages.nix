@@ -8,7 +8,10 @@
       tailwind = pkgs.haskellPackages.tailwind;
       buildEmaSiteWithTailwind = { baseUrl }:
         pkgs.runCommand "site"
-          { }
+          {
+             LANG = "C.UTF-8";
+             LC_ALL = "C.UTF-8";
+          }
           ''
             mkdir -p $out
             pushd ${inputs.self}/ema-template
