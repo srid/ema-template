@@ -1,14 +1,11 @@
 {
   perSystem = { config, pkgs, lib, ... }:
-    let
-      tailwind = pkgs.haskellPackages.tailwind;
-    in
     {
       devShells.default = pkgs.mkShell {
         name = "ema-template";
         meta.description = "ema-template development environment";
         packages = [
-          tailwind
+          pkgs.tailwindcss
           pkgs.just
           pkgs.nixd
         ];
