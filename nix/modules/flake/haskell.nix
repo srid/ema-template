@@ -9,7 +9,7 @@
         inputs.ema.haskellFlakeProjectModules.output
       ];
       projectRoot = builtins.toString (lib.fileset.toSource {
-        root = root;
+        inherit root;
         fileset = lib.fileset.unions [
           (root + /ema-template)
           (root + /cabal.project)
