@@ -14,7 +14,7 @@
           }
           ''
             mkdir -p $out
-            pushd ${inputs.self}/ema-template
+            cd ${inputs.self}/ema-template
             ${lib.getExe config.packages.ema-template} \
               --base-url=${baseUrl} gen $out
             rm -f $out/tailwind.css
